@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+
+  /* Surface — deep blue-black with subtle teal tint */
+  --bg-primary: oklch(10% 0.015 220);
+  --bg-secondary: oklch(13% 0.012 220);
+  --bg-card: oklch(16% 0.01 220);
+  --bg-card-hover: oklch(19% 0.012 220);
+  --bg-elevated: oklch(20% 0.015 220);
+  --bg-inset: oklch(8% 0.012 220);
+
+  /* Borders — barely visible, structural */
+  --border: oklch(22% 0.01 220);
+  --border-subtle: oklch(18% 0.008 220);
+  --border-active: oklch(30% 0.04 185);
+
+  /* Text — warm white, not harsh */
+  --text-primary: oklch(92% 0.01 80);
+  --text-secondary: oklch(60% 0.015 220);
+  --text-muted: oklch(42% 0.01 220);
+
+  /* Accent — deep teal, restrained */
+  --accent: oklch(72% 0.12 185);
+  --accent-hover: oklch(78% 0.14 185);
+  --accent-soft: oklch(72% 0.12 185 / 0.08);
+  --accent-glow: oklch(72% 0.12 185 / 0.03);
+
+  /* Phase colors — muted, not neon */
+  --phase-listen: oklch(68% 0.1 240);
+  --phase-read: oklch(72% 0.1 85);
+  --phase-shadow: oklch(72% 0.12 185);
+  --phase-record: oklch(65% 0.12 25);
+  --phase-retell: oklch(68% 0.1 300);
+
+  /* Semantic */
+  --green: oklch(68% 0.12 155);
+  --green-soft: oklch(68% 0.12 155 / 0.08);
+  --orange: oklch(72% 0.1 85);
+  --orange-soft: oklch(72% 0.1 85 / 0.08);
+  --red: oklch(65% 0.12 25);
+  --red-soft: oklch(65% 0.12 25 / 0.08);
+
+  /* Waveform */
+  --wave-color: oklch(25% 0.015 220);
+  --wave-progress: oklch(72% 0.12 185);
+  --wave-cursor: oklch(72% 0.12 185);
+
+  /* Scrollbar */
+  --scrollbar: oklch(22% 0.01 220);
+
+  /* Type scale — 1.25 major third */
+  --text-xs: 0.7rem;
+  --text-sm: 0.8125rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.5rem;
+
+  /* Spacing rhythm base: 24px (1.5rem at 16px root) */
+  --space-unit: 1.5rem;
+}
+
+@theme inline {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-hover: var(--bg-card-hover);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-inset: var(--bg-inset);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-active: var(--border-active);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-phase-listen: var(--phase-listen);
+  --color-phase-read: var(--phase-read);
+  --color-phase-shadow: var(--phase-shadow);
+  --color-phase-record: var(--phase-record);
+  --color-phase-retell: var(--phase-retell);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-orange: var(--orange);
+  --color-orange-soft: var(--orange-soft);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+/* Scrollbar — barely there */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-soft);
+}
+
+/* Focus ring — accessible but on-brand */
+:focus-visible {
+  outline: 1.5px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Subtitle text — optimized for reading English */
+.subtitle-text {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+}
+
+/* Active subtitle pulse */
+@keyframes cue-enter {
+  from { opacity: 0.6; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.cue-active {
+  animation: cue-enter 0.2s ease-out;
+}
+
+/* Phase bar segment glow */
+.phase-glow {
+  box-shadow: 0 0 8px currentColor;
+}
