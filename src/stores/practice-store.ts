@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { PracticePhase, PhaseRecord, SessionAssessment } from '@/lib/types'
+import type { PracticePhase, PhaseRecord } from '@/lib/types'
 import { PHASE_CONFIG, PHASES } from '@/lib/types'
 
 interface PracticeStore {

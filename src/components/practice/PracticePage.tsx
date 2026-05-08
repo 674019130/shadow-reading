@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { ArrowLeft, Eye, EyeOff, Repeat, Loader2, Mic, Timer } from 'lucide-react'
@@ -8,8 +8,10 @@ import SubtitleDisplay from './SubtitleDisplay'
 import RecordingPanel from './RecordingPanel'
 import SessionTimer from './SessionTimer'
 import AssessmentDialog from './AssessmentDialog'
+import PracticeContextPanel from './PracticeContextPanel'
+import ThemeToggle from '@/components/theme/ThemeToggle'
 import { PHASE_CONFIG, PHASES } from '@/lib/types'
-import { getMaterial, seedBuiltinMaterials, updateMaterialPractice } from '@/lib/materials'
+import { getMaterial, updateMaterialPractice } from '@/lib/materials'
 import { usePracticeStore } from '@/stores/practice-store'
 import { db } from '@/lib/db'
 import { nanoid } from 'nanoid'
@@ -43,10 +45,24 @@ export default function PracticePage({ materialId }: PracticePageProps) {
 
   const currentPhase = PHASES[currentPhaseIndex] as PracticePhase
 
+  const currentCue = useMemo(() => {
+    if (!material) return null
+    return material.subtitles.find(
+      cue => currentTime >= cue.startTime && currentTime <= cue.endTime
+    ) || null
+  }, [material, currentTime])
+
+  const nextCue = useMemo(() => {
+    if (!material) return null
+    const currentIndex = currentCue
+      ? material.subtitles.findIndex(cue => cue.index === currentCue.index)
+      : material.subtitles.findIndex(cue => cue.startTime > currentTime) - 1
+    return material.subtitles[currentIndex + 1] || null
+  }, [material, currentCue, currentTime])
+
   // Load material from DB
   useEffect(() => {
     async function load() {
-      await seedBuiltinMaterials()
       const m = await getMaterial(materialId)
       setMaterial(m || null)
       setLoading(false)
@@ -121,7 +137,7 @@ export default function PracticePage({ materialId }: PracticePageProps) {
 
     endSession()
     setShowAssessment(false)
-    toast.success('Practice session saved!')
+    toast.success('练习已保存 / Practice session saved')
   }, [material, endSession])
 
   // Keyboard shortcuts
@@ -145,7 +161,7 @@ export default function PracticePage({ materialId }: PracticePageProps) {
 
   if (loading) {
     return (
-      <div className="h-screen bg-bg-primary flex items-center justify-center">
+      <div className="h-screen w-full bg-bg-primary flex items-center justify-center">
         <Loader2 size={20} className="text-text-muted animate-spin" />
       </div>
     )
@@ -153,10 +169,10 @@ export default function PracticePage({ materialId }: PracticePageProps) {
 
   if (!material) {
     return (
-      <div className="h-screen bg-bg-primary flex flex-col items-center justify-center gap-3">
+      <div className="h-screen w-full bg-bg-primary flex flex-col items-center justify-center gap-3">
         <p className="text-[14px] text-text-muted">Material not found</p>
         <Link href="/" className="text-[13px] text-accent hover:text-accent-hover transition-colors">
-          Back to home
+          返回首页 / Back to home
         </Link>
       </div>
     )
@@ -165,7 +181,7 @@ export default function PracticePage({ materialId }: PracticePageProps) {
   const phaseConfig = PHASE_CONFIG[currentPhase]
 
   return (
-    <div className="h-screen bg-bg-primary flex flex-col overflow-hidden">
+    <div className="h-screen w-full bg-bg-primary flex flex-col overflow-hidden">
       {/* Header */}
       <header className="h-12 flex items-center justify-between px-5 shrink-0">
         <div className="flex items-center gap-3">
@@ -193,7 +209,7 @@ export default function PracticePage({ materialId }: PracticePageProps) {
               className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-bg-card hover:bg-bg-card-hover text-[11px] text-text-secondary hover:text-text-primary transition-colors"
             >
               <Timer size={12} />
-              Start session
+              开始练习 / Start
             </button>
           )}
 
@@ -205,7 +221,7 @@ export default function PracticePage({ materialId }: PracticePageProps) {
             className={`p-1 rounded transition-colors ${
               showRecording ? 'text-red' : 'text-text-muted hover:text-text-secondary'
             }`}
-            title="Recording panel"
+            title="录音面板 / Recording panel"
           >
             <Mic size={13} />
           </button>
@@ -216,7 +232,7 @@ export default function PracticePage({ materialId }: PracticePageProps) {
             className={`p-1 rounded transition-colors ${
               loopCue ? 'text-accent' : 'text-text-muted hover:text-text-secondary'
             }`}
-            title="Loop sentence (L)"
+            title="循环句子 / Loop sentence (L)"
           >
             <Repeat size={13} />
           </button>
@@ -225,10 +241,12 @@ export default function PracticePage({ materialId }: PracticePageProps) {
           <button
             onClick={() => setSubtitleVisible(!subtitleVisible)}
             className="p-1 rounded text-text-muted hover:text-text-secondary transition-colors"
-            title="Toggle subtitles (S)"
+            title="显示/隐藏字幕 / Toggle subtitles (S)"
           >
             {subtitleVisible ? <Eye size={13} /> : <EyeOff size={13} />}
           </button>
+
+          <ThemeToggle />
 
           {/* Phase indicator */}
           <div className="flex items-center gap-1.5">
@@ -237,61 +255,78 @@ export default function PracticePage({ materialId }: PracticePageProps) {
               style={{ background: phaseConfig.color, color: phaseConfig.color }}
             />
             <span className="text-[11px] font-medium" style={{ color: phaseConfig.color }}>
-              {phaseConfig.labelEn}
+              {phaseConfig.label} / {phaseConfig.labelEn}
             </span>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full px-6 pt-4 pb-16 min-h-0 overflow-y-auto">
-        <p className="text-[11px] text-text-muted/50 mb-4 text-center">
-          {phaseConfig.description}
-        </p>
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="grid h-full w-full max-w-[1320px] grid-cols-1 gap-8 px-6 pt-4 pb-6 mx-auto xl:grid-cols-[minmax(0,768px)_minmax(290px,360px)]">
+          <div className="flex min-h-0 flex-col overflow-y-auto pb-10">
+            <p className="text-[11px] text-text-muted/50 mb-4 text-center">
+              {phaseConfig.description}
+              <span className="block mt-1 text-text-muted/40">{phaseConfig.descriptionEn}</span>
+            </p>
 
-        <div className="mb-6">
-          <AudioPlayer
-            ref={playerRef}
-            audioUrl={material.audioPath}
-            onTimeUpdate={handleTimeUpdate}
-            onReady={handleReady}
+            <div className="mb-6">
+              <AudioPlayer
+                ref={playerRef}
+                audioUrl={material.audioPath}
+                onTimeUpdate={handleTimeUpdate}
+                onReady={handleReady}
+              />
+            </div>
+
+            {/* Loop indicator bar */}
+            {loopCue && (
+              <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded-md bg-accent-soft text-[11px] text-accent">
+                <Repeat size={11} />
+                <span className="truncate">
+                  循环 / Looping: &ldquo;{loopCue.text.slice(0, 60)}{loopCue.text.length > 60 ? '...' : ''}&rdquo;
+                </span>
+                <button
+                  onClick={() => setLoopCue(null)}
+                  className="ml-auto shrink-0 text-accent/60 hover:text-accent transition-colors"
+                >
+                  停止 / Stop
+                </button>
+              </div>
+            )}
+
+            <SubtitleDisplay
+              subtitles={material.subtitles}
+              currentTime={currentTime}
+              visible={subtitleVisible}
+              onCueClick={handleCueClick}
+            />
+
+            {/* Recording panel */}
+            {showRecording && (
+              <div className="mt-4 pt-4 border-t border-border-subtle">
+                <RecordingPanel originalAudioUrl={material.audioPath} />
+              </div>
+            )}
+          </div>
+
+          <PracticeContextPanel
+            key={material.id}
+            material={material}
+            currentPhase={currentPhase}
+            currentTime={currentTime}
+            currentCue={currentCue}
+            nextCue={nextCue}
+            loopCue={loopCue}
+            onCueClick={handleCueClick}
+            onLoopCue={setLoopCue}
           />
         </div>
-
-        {/* Loop indicator bar */}
-        {loopCue && (
-          <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded-md bg-accent-soft text-[11px] text-accent">
-            <Repeat size={11} />
-            <span className="truncate">
-              Looping: &ldquo;{loopCue.text.slice(0, 60)}{loopCue.text.length > 60 ? '...' : ''}&rdquo;
-            </span>
-            <button
-              onClick={() => setLoopCue(null)}
-              className="ml-auto shrink-0 text-accent/60 hover:text-accent transition-colors"
-            >
-              Stop
-            </button>
-          </div>
-        )}
-
-        <SubtitleDisplay
-          subtitles={material.subtitles}
-          currentTime={currentTime}
-          visible={subtitleVisible}
-          onCueClick={handleCueClick}
-        />
-
-        {/* Recording panel */}
-        {showRecording && (
-          <div className="mt-4 pt-4 border-t border-border-subtle">
-            <RecordingPanel originalAudioUrl={material.audioPath} />
-          </div>
-        )}
       </div>
 
       {/* Phase bar */}
       <div className="shrink-0 px-6 pb-4 pt-2">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-[1320px] mx-auto">
           <div className="flex items-center gap-2">
             {PHASES.map((phase, i) => {
               const config = PHASE_CONFIG[phase]
@@ -324,7 +359,8 @@ export default function PracticePage({ materialId }: PracticePageProps) {
                       fontWeight: isActive ? 600 : 400,
                     }}
                   >
-                    {config.labelEn}
+                    {config.label}
+                    <span className="ml-1 text-text-muted/70">{config.labelEn}</span>
                   </span>
                 </div>
               )

@@ -63,6 +63,49 @@
   --space-unit: 1.5rem;
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+
+  /* Surface — warm paper, still studio-like */
+  --bg-primary: oklch(94% 0.018 82);
+  --bg-secondary: oklch(91% 0.02 82);
+  --bg-card: oklch(88% 0.018 82);
+  --bg-card-hover: oklch(85% 0.02 82);
+  --bg-elevated: oklch(98% 0.012 82);
+  --bg-inset: oklch(90% 0.014 82);
+
+  --border: oklch(79% 0.018 82);
+  --border-subtle: oklch(85% 0.014 82);
+  --border-active: oklch(58% 0.065 185);
+
+  --text-primary: oklch(24% 0.018 230);
+  --text-secondary: oklch(43% 0.02 230);
+  --text-muted: oklch(57% 0.016 230);
+
+  --accent: oklch(50% 0.1 185);
+  --accent-hover: oklch(44% 0.11 185);
+  --accent-soft: oklch(50% 0.1 185 / 0.1);
+  --accent-glow: oklch(50% 0.1 185 / 0.04);
+
+  --phase-listen: oklch(51% 0.09 240);
+  --phase-read: oklch(55% 0.09 85);
+  --phase-shadow: oklch(50% 0.1 185);
+  --phase-record: oklch(52% 0.11 25);
+  --phase-retell: oklch(51% 0.09 300);
+
+  --green: oklch(48% 0.11 155);
+  --green-soft: oklch(48% 0.11 155 / 0.1);
+  --orange: oklch(55% 0.1 85);
+  --orange-soft: oklch(55% 0.1 85 / 0.1);
+  --red: oklch(52% 0.11 25);
+  --red-soft: oklch(52% 0.11 25 / 0.1);
+
+  --wave-color: oklch(82% 0.018 230);
+  --wave-progress: oklch(50% 0.1 185);
+  --wave-cursor: oklch(44% 0.11 185);
+  --scrollbar: oklch(78% 0.018 230);
+}
+
 @theme inline {
   --color-bg-primary: var(--bg-primary);
   --color-bg-secondary: var(--bg-secondary);

@@ -1,4 +1,4 @@
-import { SubtitleCue } from './types'
+import type { SubtitleCue } from './types'
 
 /**
  * Parse SRT subtitle format into SubtitleCue array.

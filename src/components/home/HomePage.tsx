@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Play, ArrowRight } from 'lucide-react'
-import { getAllMaterials, seedBuiltinMaterials } from '@/lib/materials'
+import { getAllMaterials } from '@/lib/materials'
 import { getStreak, getTotalStats } from '@/lib/progress'
+import { DIFFICULTY_LABELS } from '@/lib/labels'
 import type { Material, DifficultyLevel } from '@/lib/types'
 
 const PHASE_STEPS = [
@@ -22,7 +23,6 @@ export default function HomePage() {
 
   useEffect(() => {
     async function load() {
-      await seedBuiltinMaterials()
       const [all, s, st] = await Promise.all([
         getAllMaterials(),
         getStreak(),
@@ -39,44 +39,47 @@ export default function HomePage() {
     <div className="max-w-xl mx-auto px-6 pt-20 pb-16">
       {/* Hero */}
       <header className="mb-16">
-        <p className="text-[11px] uppercase tracking-[0.15em] text-text-muted mb-3">
-          影子跟读法
+        <p className="text-[11px] tracking-[0.15em] text-text-muted mb-3">
+          影子跟读法 / Shadowing Method
         </p>
         <h1 className="text-[clamp(1.75rem,4vw,2.25rem)] font-semibold tracking-[-0.03em] leading-tight text-text-primary">
           Shadow Reading
         </h1>
         <p className="mt-3 text-[15px] text-text-secondary leading-relaxed max-w-sm">
-          Listen. Follow. Speak. Every day, fifteen minutes.
+          每天 20 分钟，把想说的英语练到能自然说出口。
+          <span className="block mt-1 text-[13px] text-text-muted">
+            Listen. Follow. Speak. Twenty minutes a day.
+          </span>
         </p>
       </header>
 
       {/* Stats */}
-      <div className="flex gap-8 mb-14 text-[13px]">
+      <div className="flex flex-wrap gap-8 mb-14 text-[13px]">
         <div>
-          <span className="text-text-muted block mb-0.5">streak</span>
+          <span className="text-text-muted block mb-0.5">连续练习 / streak</span>
           <span className="text-lg font-semibold tabular-nums" style={{ color: 'var(--orange)' }}>{streak}</span>
-          <span className="text-text-muted ml-1">days</span>
+          <span className="text-text-muted ml-1">天 / days</span>
         </div>
         <div>
-          <span className="text-text-muted block mb-0.5">practiced</span>
+          <span className="text-text-muted block mb-0.5">已练材料 / practiced</span>
           <span className="text-lg font-semibold tabular-nums text-accent">{materials.length}</span>
-          <span className="text-text-muted ml-1">materials</span>
+          <span className="text-text-muted ml-1">个 / materials</span>
         </div>
         <div>
-          <span className="text-text-muted block mb-0.5">total</span>
+          <span className="text-text-muted block mb-0.5">累计 / total</span>
           <span className="text-lg font-semibold tabular-nums text-text-primary">{totalMin}</span>
-          <span className="text-text-muted ml-1">min</span>
+          <span className="text-text-muted ml-1">分钟 / min</span>
         </div>
       </div>
 
       {/* Material list */}
       <section className="mb-14">
         <div className="flex items-baseline justify-between mb-4">
-          <h2 className="text-[11px] uppercase tracking-[0.15em] text-text-muted">
-            Materials
+          <h2 className="text-[11px] tracking-[0.15em] text-text-muted">
+            材料 / Materials
           </h2>
           <Link href="/materials" className="text-[11px] text-text-muted hover:text-text-secondary transition-colors">
-            View all <ArrowRight size={10} className="inline ml-0.5" />
+            全部 / View all <ArrowRight size={10} className="inline ml-0.5" />
           </Link>
         </div>
 
@@ -94,7 +97,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-3 mt-1 text-[12px] text-text-muted">
                   <DifficultyDot level={m.difficulty} />
                   <span>{formatDuration(m.duration)}</span>
-                  {m.practiceCount > 0 && <span>{m.practiceCount}x practiced</span>}
+                  {m.practiceCount > 0 && <span>已练 {m.practiceCount} 次 / {m.practiceCount}x</span>}
                 </div>
               </div>
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted group-hover:text-accent group-hover:bg-accent-soft transition-all shrink-0 ml-4">
@@ -107,8 +110,9 @@ export default function HomePage() {
 
       {/* Method */}
       <section>
-        <h2 className="text-[11px] uppercase tracking-[0.15em] text-text-muted mb-5">
+        <h2 className="text-[11px] tracking-[0.15em] text-text-muted mb-5">
           Method
+          <span className="ml-1 normal-case tracking-normal text-text-muted/60">/ 训练流程</span>
         </h2>
         <div className="flex items-start gap-0">
           {PHASE_STEPS.map((step, i) => (
@@ -126,8 +130,8 @@ export default function HomePage() {
                 >
                   {i + 1}
                 </div>
-                <span className="text-[11px] text-text-secondary font-medium">{step.labelEn}</span>
-                <span className="text-[10px] text-text-muted mt-0.5">{step.time}</span>
+                <span className="text-[11px] text-text-secondary font-medium">{step.label}</span>
+                <span className="text-[10px] text-text-muted mt-0.5">{step.labelEn} · {step.time}</span>
               </div>
             </div>
           ))}
@@ -146,7 +150,8 @@ function DifficultyDot({ level }: { level: DifficultyLevel }) {
   return (
     <span className="flex items-center gap-1.5">
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: colors[level] }} />
-      <span className="capitalize">{level}</span>
+      <span>{DIFFICULTY_LABELS[level].zh}</span>
+      <span className="text-text-muted/70">{DIFFICULTY_LABELS[level].en}</span>
     </span>
   )
 }

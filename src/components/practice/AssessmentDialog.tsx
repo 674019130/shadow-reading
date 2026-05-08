@@ -32,7 +32,7 @@ export default function AssessmentDialog({ onSubmit, onClose }: AssessmentDialog
 
       <div className="relative bg-bg-secondary border border-border rounded-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-[15px] font-semibold">Practice Complete</h2>
+          <h2 className="text-[15px] font-semibold">练习完成 / Practice Complete</h2>
           <button onClick={onClose} className="p-1 rounded text-text-muted hover:text-text-secondary transition-colors">
             <X size={16} />
           </button>
@@ -42,8 +42,8 @@ export default function AssessmentDialog({ onSubmit, onClose }: AssessmentDialog
           {/* Comprehension */}
           <div>
             <div className="flex items-baseline justify-between mb-2">
-              <label className="text-[11px] uppercase tracking-wider text-text-muted">
-                Comprehension
+              <label className="text-[11px] tracking-wider text-text-muted">
+                理解度 / Comprehension
               </label>
               <span className="text-[13px] font-mono text-accent tabular-nums">{comprehension}%</span>
             </div>
@@ -59,8 +59,8 @@ export default function AssessmentDialog({ onSubmit, onClose }: AssessmentDialog
           {/* Sync loss count */}
           <div>
             <div className="flex items-baseline justify-between mb-2">
-              <label className="text-[11px] uppercase tracking-wider text-text-muted">
-                Times lost sync
+              <label className="text-[11px] tracking-wider text-text-muted">
+                跟丢次数 / Times lost sync
               </label>
               <span className="text-[13px] font-mono text-text-secondary tabular-nums">{syncLoss}</span>
             </div>
@@ -75,8 +75,8 @@ export default function AssessmentDialog({ onSubmit, onClose }: AssessmentDialog
 
           {/* Speed used */}
           <div>
-            <label className="block text-[11px] uppercase tracking-wider text-text-muted mb-2">
-              Speed used
+            <label className="block text-[11px] tracking-wider text-text-muted mb-2">
+              使用速度 / Speed used
             </label>
             <div className="flex gap-1">
               {[0.5, 0.75, 1.0, 1.25, 1.5].map((s) => (
@@ -95,8 +95,8 @@ export default function AssessmentDialog({ onSubmit, onClose }: AssessmentDialog
 
           {/* Self rating */}
           <div>
-            <label className="block text-[11px] uppercase tracking-wider text-text-muted mb-2">
-              How did it go?
+            <label className="block text-[11px] tracking-wider text-text-muted mb-2">
+              自我感觉 / How did it go?
             </label>
             <div className="flex gap-1">
               {([1, 2, 3, 4, 5] as const).map((r) => (
@@ -115,13 +115,13 @@ export default function AssessmentDialog({ onSubmit, onClose }: AssessmentDialog
 
           {/* Notes */}
           <div>
-            <label className="block text-[11px] uppercase tracking-wider text-text-muted mb-1.5">
-              Notes <span className="normal-case text-text-muted/60">(optional)</span>
+            <label className="block text-[11px] tracking-wider text-text-muted mb-1.5">
+              备注 / Notes <span className="normal-case text-text-muted/60">（可选 / optional）</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="What went well? What to focus on next time?"
+              placeholder="哪里顺？下次重点练什么？/ What to focus on next time?"
               rows={2}
               className="w-full px-3 py-2 rounded-md bg-bg-inset border border-border text-[13px] text-text-primary placeholder:text-text-muted/40 outline-none focus:border-border-active resize-none transition-colors"
             />
@@ -132,7 +132,7 @@ export default function AssessmentDialog({ onSubmit, onClose }: AssessmentDialog
             onClick={handleSubmit}
             className="w-full py-2.5 rounded-md bg-accent text-bg-primary text-[13px] font-medium hover:bg-accent-hover transition-all"
           >
-            Save Assessment
+            保存评估 / Save Assessment
           </button>
         </div>
       </div>

@@ -82,12 +82,22 @@ const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(function Aud
     ws.on('pause', () => setIsPlaying(false))
     ws.on('finish', () => setIsPlaying(false))
 
-    ws.load(audioUrl)
+    void ws.load(audioUrl).catch((error: unknown) => {
+      if (isAbortError(error)) return
+      console.error('Audio load failed:', error)
+    })
     wavesurferRef.current = ws
 
     return () => {
-      ws.destroy()
-      wavesurferRef.current = null
+      if (wavesurferRef.current === ws) {
+        wavesurferRef.current = null
+      }
+
+      try {
+        ws.destroy()
+      } catch (error) {
+        if (!isAbortError(error)) throw error
+      }
     }
   }, [audioUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -167,14 +177,14 @@ const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(function Aud
           <button
             onClick={restart}
             className="p-2 rounded-md text-text-muted hover:text-text-secondary transition-colors"
-            title="重新开始"
+            title="重新开始 / Restart"
           >
             <RotateCcw size={14} />
           </button>
           <button
             onClick={skipBack}
             className="p-2 rounded-md text-text-muted hover:text-text-secondary transition-colors"
-            title="后退 5s"
+            title="后退 5s / Back 5s"
           >
             <SkipBack size={14} />
           </button>
@@ -188,7 +198,7 @@ const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(function Aud
           <button
             onClick={skipForward}
             className="p-2 rounded-md text-text-muted hover:text-text-secondary transition-colors"
-            title="前进 5s"
+            title="前进 5s / Forward 5s"
           >
             <SkipForward size={14} />
           </button>
@@ -210,6 +220,10 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = Math.floor(seconds % 60)
   return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
 }
 
 export default AudioPlayer

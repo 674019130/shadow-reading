@@ -1,5 +1,5 @@
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced'
-export type MaterialSource = 'local' | 'youtube' | 'builtin'
+export type MaterialSource = 'local' | 'youtube' | 'builtin' | 'text'
 
 export interface SubtitleCue {
   index: number
@@ -31,6 +31,7 @@ export const PHASE_CONFIG: Record<PracticePhase, {
   labelEn: string
   duration: number
   description: string
+  descriptionEn: string
   subtitleVisible: boolean
   color: string
 }> = {
@@ -39,6 +40,7 @@ export const PHASE_CONFIG: Record<PracticePhase, {
     labelEn: 'Listen',
     duration: 180,
     description: '不看文本，听 1~2 遍，估计理解百分比',
+    descriptionEn: 'Listen without text. Estimate how much you understand.',
     subtitleVisible: false,
     color: 'var(--phase-listen)',
   },
@@ -47,6 +49,7 @@ export const PHASE_CONFIG: Record<PracticePhase, {
     labelEn: 'Read',
     duration: 180,
     description: '看文本再听一遍，查生词，理解全文',
+    descriptionEn: 'Read the script, check key words, and understand the full passage.',
     subtitleVisible: true,
     color: 'var(--phase-read)',
   },
@@ -55,6 +58,7 @@ export const PHASE_CONFIG: Record<PracticePhase, {
     labelEn: 'Shadow',
     duration: 600,
     description: '不看文本，跟读 3~5 遍，模仿语气重音连读',
+    descriptionEn: 'Shadow 3-5 times. Copy rhythm, stress, linking, and intonation.',
     subtitleVisible: false,
     color: 'var(--phase-shadow)',
   },
@@ -63,6 +67,7 @@ export const PHASE_CONFIG: Record<PracticePhase, {
     labelEn: 'Record',
     duration: 180,
     description: '录一遍跟读，和原音对比找偏差',
+    descriptionEn: 'Record yourself once and compare it with the original voice.',
     subtitleVisible: true,
     color: 'var(--phase-record)',
   },
@@ -71,6 +76,7 @@ export const PHASE_CONFIG: Record<PracticePhase, {
     labelEn: 'Retell',
     duration: 60,
     description: '用英语简要复述材料内容',
+    descriptionEn: 'Retell the material briefly in your own English.',
     subtitleVisible: false,
     color: 'var(--phase-retell)',
   },

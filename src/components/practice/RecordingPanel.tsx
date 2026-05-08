@@ -43,7 +43,7 @@ export default function RecordingPanel({ originalAudioUrl }: RecordingPanelProps
         setRecordingDuration(d => d + 0.1)
       }, 100)
     } catch {
-      toast.error('Microphone access denied')
+      toast.error('麦克风权限被拒绝 / Microphone access denied')
     }
   }, [])
 
@@ -60,7 +60,7 @@ export default function RecordingPanel({ originalAudioUrl }: RecordingPanelProps
         duration: result.duration,
         createdAt: new Date(),
       }])
-      toast.success('Recording saved')
+      toast.success('录音已保存 / Recording saved')
     } catch {
       setIsRecording(false)
     }
@@ -148,12 +148,12 @@ export default function RecordingPanel({ originalAudioUrl }: RecordingPanelProps
           {isRecording ? (
             <>
               <Square size={12} fill="currentColor" />
-              Stop
+              停止 / Stop
             </>
           ) : (
             <>
               <Mic size={14} />
-              Record
+              录音 / Record
             </>
           )}
           <span className="text-[10px] text-text-muted ml-1">R</span>
@@ -181,7 +181,7 @@ export default function RecordingPanel({ originalAudioUrl }: RecordingPanelProps
             `}
           >
             {playingOriginal ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
-            Original
+            原音 / Original
           </button>
         )}
       </div>
@@ -209,7 +209,7 @@ export default function RecordingPanel({ originalAudioUrl }: RecordingPanelProps
 
               <div className="flex-1 min-w-0">
                 <span className="text-[12px] text-text-secondary">
-                  Recording {i + 1}
+                  录音 {i + 1} / Recording {i + 1}
                 </span>
                 <span className="text-[11px] text-text-muted ml-2 font-mono tabular-nums">
                   {formatRecTime(rec.duration)}

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { X, Upload, FileAudio, FileText, Globe, Loader2 } from 'lucide-react'
 import { createMaterial } from '@/lib/materials'
 import { parseSubtitles } from '@/lib/srt-parser'
+import { DIFFICULTY_LABELS, bilingual } from '@/lib/labels'
 import type { DifficultyLevel } from '@/lib/types'
 import { toast } from 'sonner'
 
@@ -27,7 +28,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
 
   const handleFileSubmit = async () => {
     if (!audioFile) {
-      toast.error('Please select an audio file')
+      toast.error('请选择音频文件 / Please select an audio file')
       return
     }
 
@@ -38,7 +39,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
       if (subtitleFile) formData.append('subtitle', subtitleFile)
 
       const res = await fetch('/api/materials/upload', { method: 'POST', body: formData })
-      if (!res.ok) throw new Error('Upload failed')
+      if (!res.ok) throw new Error('上传失败 / Upload failed')
 
       const data = await res.json()
       const subtitles = data.subtitleContent ? parseSubtitles(data.subtitleContent) : []
@@ -53,11 +54,11 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
         subtitles,
       })
 
-      toast.success('Material imported')
+      toast.success('材料已导入 / Material imported')
       onImported()
     } catch (error) {
       console.error(error)
-      toast.error('Import failed')
+      toast.error('导入失败 / Import failed')
     } finally {
       setUploading(false)
     }
@@ -65,7 +66,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
 
   const handleYoutubeSubmit = async () => {
     if (!youtubeUrl.trim()) {
-      toast.error('Please enter a YouTube URL')
+      toast.error('请输入 YouTube 链接 / Please enter a YouTube URL')
       return
     }
 
@@ -79,7 +80,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Download failed')
+        throw new Error(err.error || '下载失败 / Download failed')
       }
 
       const data = await res.json()
@@ -95,11 +96,11 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
         youtubeUrl,
       })
 
-      toast.success('YouTube material imported')
+      toast.success('YouTube 材料已导入 / YouTube material imported')
       onImported()
     } catch (error) {
       console.error(error)
-      toast.error(error instanceof Error ? error.message : 'YouTube import failed')
+      toast.error(error instanceof Error ? error.message : 'YouTube 导入失败 / YouTube import failed')
     } finally {
       setUploading(false)
     }
@@ -111,7 +112,10 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
 
       <div className="relative bg-bg-secondary border border-border rounded-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[15px] font-semibold">Import Material</h2>
+          <div>
+            <h2 className="text-[15px] font-semibold">导入材料 / Import Material</h2>
+            <p className="text-[12px] text-text-muted mt-1">添加本地音频或 YouTube 材料 / Add local audio or YouTube material</p>
+          </div>
           <button onClick={onClose} className="p-1 rounded text-text-muted hover:text-text-secondary transition-colors">
             <X size={16} />
           </button>
@@ -126,7 +130,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
             }`}
           >
             <FileAudio size={13} />
-            Local File
+            本地文件 / Local
           </button>
           <button
             onClick={() => setMode('youtube')}
@@ -142,12 +146,12 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-[11px] uppercase tracking-wider text-text-muted mb-1.5">Title</label>
+            <label className="block text-[11px] tracking-wider text-text-muted mb-1.5">标题 / Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={mode === 'youtube' ? 'Auto-detected from video...' : 'Material name...'}
+              placeholder={mode === 'youtube' ? '自动读取视频标题 / Auto-detected...' : '材料名称 / Material name...'}
               className="w-full px-3 py-2 rounded-md bg-bg-inset border border-border text-[14px] text-text-primary placeholder:text-text-muted/40 outline-none focus:border-border-active transition-colors"
             />
           </div>
@@ -156,7 +160,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
             <>
               {/* Audio file */}
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-text-muted mb-1.5">Audio file</label>
+                <label className="block text-[11px] tracking-wider text-text-muted mb-1.5">音频文件 / Audio file</label>
                 <input ref={audioInputRef} type="file" accept="audio/*" className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0]
@@ -174,15 +178,15 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
                 >
                   <FileAudio size={16} className={audioFile ? 'text-accent' : 'text-text-muted'} />
                   <span className={`text-[13px] truncate ${audioFile ? 'text-text-primary' : 'text-text-muted'}`}>
-                    {audioFile ? audioFile.name : 'Select MP3, WAV, or M4A...'}
+                    {audioFile ? audioFile.name : '选择 MP3、WAV 或 M4A / Select audio...'}
                   </span>
                 </button>
               </div>
 
               {/* Subtitle file */}
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-text-muted mb-1.5">
-                  Subtitles <span className="normal-case text-text-muted/60">(optional)</span>
+                <label className="block text-[11px] tracking-wider text-text-muted mb-1.5">
+                  字幕 / Subtitles <span className="normal-case text-text-muted/60">（可选 / optional）</span>
                 </label>
                 <input ref={subtitleInputRef} type="file" accept=".srt,.vtt,.txt,.json" className="hidden"
                   onChange={(e) => { if (e.target.files?.[0]) setSubtitleFile(e.target.files[0]) }}
@@ -195,7 +199,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
                 >
                   <FileText size={16} className={subtitleFile ? 'text-accent' : 'text-text-muted'} />
                   <span className={`text-[13px] truncate ${subtitleFile ? 'text-text-primary' : 'text-text-muted'}`}>
-                    {subtitleFile ? subtitleFile.name : 'Select SRT, VTT, or TXT...'}
+                    {subtitleFile ? subtitleFile.name : '选择 SRT、VTT 或 TXT / Select subtitles...'}
                   </span>
                 </button>
               </div>
@@ -203,7 +207,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
           ) : (
             /* YouTube URL */
             <div>
-              <label className="block text-[11px] uppercase tracking-wider text-text-muted mb-1.5">YouTube URL</label>
+              <label className="block text-[11px] tracking-wider text-text-muted mb-1.5">YouTube 链接 / YouTube URL</label>
               <input
                 type="url"
                 value={youtubeUrl}
@@ -212,24 +216,24 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
                 className="w-full px-3 py-2 rounded-md bg-bg-inset border border-border text-[14px] text-text-primary placeholder:text-text-muted/40 outline-none focus:border-border-active transition-colors"
               />
               <p className="text-[11px] text-text-muted/50 mt-1.5">
-                Audio and English subtitles will be downloaded automatically
+                自动下载音频和英文字幕 / Audio and English subtitles will be downloaded automatically
               </p>
             </div>
           )}
 
           {/* Difficulty */}
           <div>
-            <label className="block text-[11px] uppercase tracking-wider text-text-muted mb-1.5">Difficulty</label>
+            <label className="block text-[11px] tracking-wider text-text-muted mb-1.5">难度 / Difficulty</label>
             <div className="flex gap-1">
               {(['beginner', 'intermediate', 'advanced'] as DifficultyLevel[]).map((d) => (
                 <button
                   key={d}
                   onClick={() => setDifficulty(d)}
-                  className={`flex-1 py-1.5 rounded-md text-[12px] capitalize transition-colors ${
+                  className={`flex-1 py-1.5 rounded-md text-[12px] transition-colors ${
                     difficulty === d ? 'bg-bg-elevated text-text-primary' : 'text-text-muted hover:text-text-secondary'
                   }`}
                 >
-                  {d}
+                  {bilingual(DIFFICULTY_LABELS[d])}
                 </button>
               ))}
             </div>
@@ -244,12 +248,12 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
             {uploading ? (
               <>
                 <Loader2 size={14} className="animate-spin" />
-                {mode === 'youtube' ? 'Downloading...' : 'Importing...'}
+                {mode === 'youtube' ? '下载中 / Downloading...' : '导入中 / Importing...'}
               </>
             ) : (
               <>
                 <Upload size={14} />
-                Import
+                导入 / Import
               </>
             )}
           </button>

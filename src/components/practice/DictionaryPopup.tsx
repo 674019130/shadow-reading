@@ -13,11 +13,21 @@ interface DictEntry {
   }[]
 }
 
+interface LookupState {
+  word: string
+  entry: DictEntry | null
+  zhWord: string | null
+  zhDefs: Map<string, string>
+  error: string | null
+}
+
 interface DictionaryPopupProps {
   word: string
   position: { x: number; y: number }
   onClose: () => void
 }
+
+const EMPTY_DEFS = new Map<string, string>()
 
 async function fetchChineseTranslation(word: string): Promise<string | null> {
   try {
@@ -50,38 +60,33 @@ async function fetchDefinitionTranslation(definition: string): Promise<string | 
 }
 
 export default function DictionaryPopup({ word, position, onClose }: DictionaryPopupProps) {
-  const [entry, setEntry] = useState<DictEntry | null>(null)
-  const [zhWord, setZhWord] = useState<string | null>(null)
-  const [zhDefs, setZhDefs] = useState<Map<string, string>>(new Map())
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const cleanedWord = word.toLowerCase().replace(/[^a-z'-]/g, '')
+  const [lookup, setLookup] = useState<LookupState | null>(null)
   const popupRef = useRef<HTMLDivElement>(null)
 
   // Fetch English definition + Chinese translation in parallel
   useEffect(() => {
-    const cleaned = word.toLowerCase().replace(/[^a-z'-]/g, '')
-    if (!cleaned) {
-      setError('Not a word')
-      setLoading(false)
-      return
-    }
+    if (!cleanedWord) return
+    let cancelled = false
 
-    setLoading(true)
-    setError(null)
-    setZhWord(null)
-    setZhDefs(new Map())
+    async function loadDefinition() {
+      try {
+        const [dictEntry, zh] = await Promise.all([
+          fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanedWord}`)
+            .then(res => { if (!res.ok) throw new Error('Not found'); return res.json() })
+            .then((data: DictEntry[]) => data[0]),
+          fetchChineseTranslation(cleanedWord),
+        ])
 
-    // Fetch English dict + Chinese word translation in parallel
-    Promise.all([
-      fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleaned}`)
-        .then(res => { if (!res.ok) throw new Error('Not found'); return res.json() })
-        .then((data: DictEntry[]) => data[0]),
-      fetchChineseTranslation(cleaned),
-    ])
-      .then(([dictEntry, zh]) => {
-        setEntry(dictEntry)
-        setZhWord(zh)
-        setLoading(false)
+        if (cancelled) return
+
+        setLookup({
+          word: cleanedWord,
+          entry: dictEntry,
+          zhWord: zh,
+          zhDefs: new Map(),
+          error: null,
+        })
 
         // Then fetch Chinese translations for top definitions (non-blocking)
         if (dictEntry) {
@@ -93,26 +98,39 @@ export default function DictionaryPopup({ word, position, onClose }: DictionaryP
             }
           }
           // Translate definitions one by one to avoid rate limits
-          topDefs.reduce((chain, { key, text }) => {
-            return chain.then(() =>
-              fetchDefinitionTranslation(text).then(zh => {
-                if (zh) {
-                  setZhDefs(prev => new Map(prev).set(key, zh))
+          for (const { key, text } of topDefs) {
+            const zh = await fetchDefinitionTranslation(text)
+            if (cancelled) return
+            if (zh) {
+              setLookup(prev => {
+                if (!prev || prev.word !== cleanedWord) return prev
+                return {
+                  ...prev,
+                  zhDefs: new Map(prev.zhDefs).set(key, zh),
                 }
               })
-            )
-          }, Promise.resolve())
+            }
+          }
         }
-      })
-      .catch(() => {
+      } catch {
         // English dict failed, still try Chinese translation
-        fetchChineseTranslation(cleaned).then(zh => {
-          setZhWord(zh)
-          setError(zh ? null : 'No definition found')
-          setLoading(false)
+        const zh = await fetchChineseTranslation(cleanedWord)
+        if (cancelled) return
+        setLookup({
+          word: cleanedWord,
+          entry: null,
+          zhWord: zh,
+          zhDefs: new Map(),
+          error: zh ? null : 'No definition found',
         })
-      })
-  }, [word])
+      }
+    }
+
+    void loadDefinition()
+    return () => {
+      cancelled = true
+    }
+  }, [cleanedWord])
 
   // Close on click outside / Escape
   useEffect(() => {
@@ -143,6 +161,13 @@ export default function DictionaryPopup({ word, position, onClose }: DictionaryP
   const playAudio = (url: string) => {
     new Audio(url).play()
   }
+
+  const hasCurrentLookup = lookup?.word === cleanedWord
+  const entry = hasCurrentLookup ? lookup.entry : null
+  const zhWord = hasCurrentLookup ? lookup.zhWord : null
+  const zhDefs = hasCurrentLookup ? lookup.zhDefs : EMPTY_DEFS
+  const loading = Boolean(cleanedWord) && !hasCurrentLookup
+  const error = cleanedWord ? (hasCurrentLookup ? lookup.error : null) : 'Not a word'
 
   const audioUrl = entry?.phonetics?.find(p => p.audio)?.audio
   const phoneticText = entry?.phonetic || entry?.phonetics?.find(p => p.text)?.text

@@ -77,10 +77,10 @@ export default function SubtitleDisplay({
       <div className="flex-1 flex items-center justify-center py-16">
         <div className="text-center space-y-2">
           <p className="text-[13px] text-text-muted/60">
-            Subtitles hidden
+            字幕已隐藏 / Subtitles hidden
           </p>
           <p className="text-[11px] text-text-muted/40">
-            press S to show
+            按 S 显示 / press S to show
           </p>
         </div>
       </div>

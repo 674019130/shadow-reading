@@ -8,11 +8,12 @@ import {
   BarChart3,
   Home,
 } from 'lucide-react'
+import ThemeToggle from '@/components/theme/ThemeToggle'
 
 const NAV_ITEMS = [
-  { href: '/', label: '首页', icon: Home },
-  { href: '/materials', label: '材料库', icon: Library },
-  { href: '/progress', label: '进度', icon: BarChart3 },
+  { href: '/', label: '首页', labelEn: 'Home', icon: Home },
+  { href: '/materials', label: '材料库', labelEn: 'Materials', icon: Library },
+  { href: '/progress', label: '进度', labelEn: 'Progress', icon: BarChart3 },
 ]
 
 export default function Sidebar() {
@@ -33,7 +34,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-2 space-y-0.5">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ href, label, labelEn, icon: Icon }) => {
           const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
           return (
             <Link
@@ -48,7 +49,10 @@ export default function Sidebar() {
               `}
             >
               <Icon size={16} strokeWidth={1.5} />
-              <span className="hidden md:block">{label}</span>
+              <span className="hidden md:flex flex-col leading-tight">
+                <span>{label}</span>
+                <span className="text-[10px] text-text-muted/70">{labelEn}</span>
+              </span>
               {isActive && (
                 <span className="hidden md:block ml-auto w-1 h-1 rounded-full bg-accent" />
               )}
@@ -58,10 +62,12 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 flex items-center justify-between gap-3">
         <p className="hidden md:block text-[11px] text-text-muted/60 leading-relaxed">
-          每天 15 分钟
+          每天 20 分钟<br />
+          <span className="text-text-muted/45">20 min daily</span>
         </p>
+        <ThemeToggle />
       </div>
     </aside>
   )

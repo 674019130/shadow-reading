@@ -41,39 +41,39 @@ export default function ProgressDashboard() {
   return (
     <div className="max-w-2xl mx-auto px-6 pt-12 pb-16 space-y-10">
       <div>
-        <h1 className="text-xl font-semibold tracking-[-0.02em]">Progress</h1>
-        <p className="text-[13px] text-text-muted mt-1">Track your shadow reading journey</p>
+        <h1 className="text-xl font-semibold tracking-[-0.02em]">进度 / Progress</h1>
+        <p className="text-[13px] text-text-muted mt-1">跟踪每天的跟读练习和理解度 / Track your shadowing journey</p>
       </div>
 
       {/* Stats row */}
-      <div className="flex gap-8 text-[13px]">
+      <div className="flex flex-wrap gap-8 text-[13px]">
         <div>
-          <span className="text-text-muted block mb-0.5">current streak</span>
+          <span className="text-text-muted block mb-0.5">当前连续 / current streak</span>
           <span className="text-lg font-semibold tabular-nums" style={{ color: 'var(--orange)' }}>
             {streak.current}
           </span>
-          <span className="text-text-muted ml-1">days</span>
+          <span className="text-text-muted ml-1">天 / days</span>
         </div>
         <div>
-          <span className="text-text-muted block mb-0.5">longest streak</span>
+          <span className="text-text-muted block mb-0.5">最长连续 / longest streak</span>
           <span className="text-lg font-semibold tabular-nums text-text-primary">{streak.longest}</span>
-          <span className="text-text-muted ml-1">days</span>
+          <span className="text-text-muted ml-1">天 / days</span>
         </div>
         <div>
-          <span className="text-text-muted block mb-0.5">total sessions</span>
+          <span className="text-text-muted block mb-0.5">练习次数 / sessions</span>
           <span className="text-lg font-semibold tabular-nums text-accent">{stats.totalSessions}</span>
         </div>
         <div>
-          <span className="text-text-muted block mb-0.5">total time</span>
+          <span className="text-text-muted block mb-0.5">累计时间 / total time</span>
           <span className="text-lg font-semibold tabular-nums text-text-primary">{stats.totalMinutes}</span>
-          <span className="text-text-muted ml-1">min</span>
+          <span className="text-text-muted ml-1">分钟 / min</span>
         </div>
       </div>
 
       {/* Streak calendar (last 30 days) */}
       <section>
-        <h2 className="text-[11px] uppercase tracking-[0.15em] text-text-muted mb-3">
-          Last 30 Days
+        <h2 className="text-[11px] tracking-[0.15em] text-text-muted mb-3">
+          最近 30 天 / Last 30 Days
         </h2>
         <div className="flex gap-[3px] flex-wrap">
           {dailyData.map((d) => {
@@ -89,7 +89,7 @@ export default function ProgressDashboard() {
                     ? `oklch(72% ${0.12 * intensity} 185 / ${0.2 + intensity * 0.8})`
                     : 'var(--bg-card)',
                 }}
-                title={`${d.date}: ${d.sessionsCompleted} sessions, ${d.totalMinutes} min`}
+                title={`${d.date}: ${d.sessionsCompleted} 次 / sessions, ${d.totalMinutes} 分钟 / min`}
               />
             )
           })}
@@ -99,8 +99,8 @@ export default function ProgressDashboard() {
       {/* Charts */}
       {chartData.length > 1 && (
         <section>
-          <h2 className="text-[11px] uppercase tracking-[0.15em] text-text-muted mb-4">
-            Comprehension Trend
+          <h2 className="text-[11px] tracking-[0.15em] text-text-muted mb-4">
+            理解度趋势 / Comprehension Trend
           </h2>
           <div className="h-48 bg-bg-inset rounded-lg p-4">
             <ResponsiveContainer width="100%" height="100%">
@@ -129,7 +129,7 @@ export default function ProgressDashboard() {
                   stroke="var(--accent)"
                   strokeWidth={2}
                   dot={{ fill: 'var(--accent)', r: 3 }}
-                  name="Comprehension %"
+                  name="理解度 / Comprehension %"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -139,12 +139,12 @@ export default function ProgressDashboard() {
 
       {/* Session history */}
       <section>
-        <h2 className="text-[11px] uppercase tracking-[0.15em] text-text-muted mb-3">
-          Session History
+        <h2 className="text-[11px] tracking-[0.15em] text-text-muted mb-3">
+          练习记录 / Session History
         </h2>
         {sessions.length === 0 ? (
           <p className="text-[13px] text-text-muted/60 py-8 text-center">
-            No practice sessions yet. Start your first session!
+            还没有练习记录。开始第一次跟读吧。/ No practice sessions yet.
           </p>
         ) : (
           <div className="space-y-1">
@@ -159,7 +159,7 @@ export default function ProgressDashboard() {
                   </span>
                   {s.assessment && (
                     <span className="text-[11px] text-text-muted ml-2">
-                      {s.assessment.comprehensionPercent}% comprehension
+                      理解度 {s.assessment.comprehensionPercent}% / comprehension
                     </span>
                   )}
                 </div>
