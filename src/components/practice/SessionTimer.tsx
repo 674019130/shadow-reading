@@ -7,16 +7,16 @@ import { PHASE_CONFIG, PHASES } from '@/lib/types'
 
 interface SessionTimerProps {
   onPhaseChange?: (phase: string) => void
-  onSessionComplete?: () => void
+  onNextPhase?: () => void
 }
 
-export default function SessionTimer({ onPhaseChange, onSessionComplete }: SessionTimerProps) {
+export default function SessionTimer({ onPhaseChange, onNextPhase }: SessionTimerProps) {
   const {
     isSessionActive,
     currentPhaseIndex,
     phaseTimeRemaining,
+    phaseExtensionSeconds,
     isTimerRunning,
-    nextPhase,
     previousPhase,
     toggleTimer,
     tick,
@@ -37,21 +37,13 @@ export default function SessionTimer({ onPhaseChange, onSessionComplete }: Sessi
     onPhaseChange?.(currentPhase)
   }, [currentPhase, onPhaseChange])
 
-  // Auto-advance when time is up
-  useEffect(() => {
-    if (phaseTimeRemaining <= 0 && isSessionActive) {
-      const isComplete = nextPhase()
-      if (isComplete) {
-        onSessionComplete?.()
-      }
-    }
-  }, [phaseTimeRemaining, isSessionActive, nextPhase, onSessionComplete])
-
   if (!isSessionActive) return null
 
   const minutes = Math.floor(phaseTimeRemaining / 60)
   const seconds = phaseTimeRemaining % 60
-  const progress = 1 - phaseTimeRemaining / config.duration
+  const totalPhaseTime = config.duration + phaseExtensionSeconds
+  const progress = totalPhaseTime > 0 ? 1 - phaseTimeRemaining / totalPhaseTime : 1
+  const isTimeUp = phaseTimeRemaining <= 0
 
   return (
     <div className="flex items-center gap-3">
@@ -67,9 +59,10 @@ export default function SessionTimer({ onPhaseChange, onSessionComplete }: Sessi
       {/* Timer display */}
       <button
         onClick={toggleTimer}
-        className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-bg-card/50 transition-colors"
+        disabled={isTimeUp}
+        className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-bg-card/50 disabled:cursor-not-allowed disabled:opacity-70 transition-colors"
       >
-        {isTimerRunning ? (
+        {isTimerRunning && !isTimeUp ? (
           <Pause size={11} style={{ color: config.color }} />
         ) : (
           <Play size={11} className="ml-0.5" style={{ color: config.color }} />
@@ -101,11 +94,7 @@ export default function SessionTimer({ onPhaseChange, onSessionComplete }: Sessi
 
       {/* Next phase */}
       <button
-        onClick={() => {
-          const isComplete = nextPhase()
-          if (isComplete) onSessionComplete?.()
-        }}
-        disabled={currentPhaseIndex === PHASES.length - 1 && phaseTimeRemaining > 0}
+        onClick={onNextPhase}
         className="p-1 rounded text-text-muted hover:text-text-secondary disabled:opacity-30 transition-colors"
       >
         <SkipForward size={12} />

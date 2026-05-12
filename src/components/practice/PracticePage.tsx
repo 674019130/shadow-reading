@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { ArrowLeft, Eye, EyeOff, Repeat, Loader2, Mic, Timer } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Mic, Plus, Repeat, Timer } from 'lucide-react'
 import SubtitleDisplay from './SubtitleDisplay'
 import RecordingPanel from './RecordingPanel'
 import SessionTimer from './SessionTimer'
@@ -39,11 +39,15 @@ export default function PracticePage({ materialId }: PracticePageProps) {
   const {
     isSessionActive,
     currentPhaseIndex,
+    phaseTimeRemaining,
     startSession,
     endSession,
+    nextPhase,
+    extendCurrentPhase,
   } = usePracticeStore()
 
   const currentPhase = PHASES[currentPhaseIndex] as PracticePhase
+  const nextPhaseName = PHASES[currentPhaseIndex + 1] as PracticePhase | undefined
 
   const currentCue = useMemo(() => {
     if (!material) return null
@@ -117,6 +121,24 @@ export default function PracticePage({ materialId }: PracticePageProps) {
     setShowAssessment(true)
   }, [])
 
+  const handleAdvancePhase = useCallback(() => {
+    const completed = nextPhase()
+    if (completed) {
+      handleSessionComplete()
+      return
+    }
+
+    const nextConfig = PHASE_CONFIG[PHASES[currentPhaseIndex + 1]]
+    if (nextConfig) {
+      toast.success(`进入${nextConfig.label} / Start ${nextConfig.labelEn}`)
+    }
+  }, [currentPhaseIndex, handleSessionComplete, nextPhase])
+
+  const handleExtendPhase = useCallback(() => {
+    extendCurrentPhase(60)
+    toast.success('已加 1 分钟 / Added 1 minute')
+  }, [extendCurrentPhase])
+
   // Assessment submit handler
   const handleAssessmentSubmit = useCallback(async (assessment: SessionAssessment) => {
     if (!material) return
@@ -179,6 +201,8 @@ export default function PracticePage({ materialId }: PracticePageProps) {
   }
 
   const phaseConfig = PHASE_CONFIG[currentPhase]
+  const nextPhaseConfig = nextPhaseName ? PHASE_CONFIG[nextPhaseName] : null
+  const isPhaseTimeUp = isSessionActive && phaseTimeRemaining <= 0
 
   return (
     <div className="h-screen w-full bg-bg-primary flex flex-col overflow-hidden">
@@ -201,7 +225,7 @@ export default function PracticePage({ materialId }: PracticePageProps) {
           {isSessionActive ? (
             <SessionTimer
               onPhaseChange={handlePhaseChange}
-              onSessionComplete={handleSessionComplete}
+              onNextPhase={handleAdvancePhase}
             />
           ) : (
             <button
@@ -265,10 +289,54 @@ export default function PracticePage({ materialId }: PracticePageProps) {
       <div className="flex-1 min-h-0 overflow-hidden">
         <div className="grid h-full w-full max-w-[1320px] grid-cols-1 gap-8 px-6 pt-4 pb-6 mx-auto xl:grid-cols-[minmax(0,768px)_minmax(290px,360px)]">
           <div className="flex min-h-0 flex-col overflow-y-auto pb-10">
-            <p className="text-[11px] text-text-muted/50 mb-4 text-center">
-              {phaseConfig.description}
-              <span className="block mt-1 text-text-muted/40">{phaseConfig.descriptionEn}</span>
-            </p>
+            <div
+              className={`mb-4 rounded-lg border px-4 py-3 transition-colors ${
+                isPhaseTimeUp ? 'bg-bg-card border-border-active' : 'bg-transparent border-border-subtle'
+              }`}
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-1.5 w-1.5 rounded-full phase-glow"
+                      style={{ background: phaseConfig.color, color: phaseConfig.color }}
+                    />
+                    <p className="text-[11px] font-medium" style={{ color: phaseConfig.color }}>
+                      {isPhaseTimeUp
+                        ? `${phaseConfig.label}建议时间已到 / ${phaseConfig.labelEn} time is up`
+                        : `当前阶段 / Current: ${phaseConfig.label} · ${phaseConfig.labelEn}`}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-5 text-text-muted">
+                    {phaseConfig.description}
+                    <span className="block text-text-muted/60">{phaseConfig.descriptionEn}</span>
+                  </p>
+                </div>
+
+                {isSessionActive && (
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {isPhaseTimeUp && (
+                      <button
+                        onClick={handleExtendPhase}
+                        className="flex items-center gap-1.5 rounded-md bg-bg-elevated px-3 py-2 text-[12px] text-text-secondary transition-colors hover:text-text-primary"
+                      >
+                        <Plus size={13} />
+                        再练 1 分钟 / +1 min
+                      </button>
+                    )}
+                    <button
+                      onClick={handleAdvancePhase}
+                      className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-[12px] font-medium text-bg-primary transition-colors hover:bg-accent-hover"
+                    >
+                      {nextPhaseConfig ? <ArrowRight size={13} /> : <CheckCircle2 size={13} />}
+                      {nextPhaseConfig
+                        ? `进入${nextPhaseConfig.label} / Start ${nextPhaseConfig.labelEn}`
+                        : '完成练习 / Finish Practice'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="mb-6">
               <AudioPlayer

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { PracticePhase, PhaseRecord } from '@/lib/types'
-import { PHASE_CONFIG, PHASES } from '@/lib/types'
+import type { PracticePhase, PhaseRecord } from '../lib/types.ts'
+import { PHASE_CONFIG, PHASES } from '../lib/types.ts'
 
 interface PracticeStore {
   // Session state
@@ -8,6 +8,7 @@ interface PracticeStore {
   materialId: string | null
   currentPhaseIndex: number
   phaseTimeRemaining: number
+  phaseExtensionSeconds: number
   isTimerRunning: boolean
   phaseRecords: PhaseRecord[]
   startedAt: string | null
@@ -21,6 +22,7 @@ interface PracticeStore {
   nextPhase: () => boolean
   previousPhase: () => void
   skipToPhase: (index: number) => void
+  extendCurrentPhase: (seconds: number) => void
   toggleTimer: () => void
   tick: () => void
 }
@@ -30,6 +32,7 @@ export const usePracticeStore = create<PracticeStore>((set, get) => ({
   materialId: null,
   currentPhaseIndex: 0,
   phaseTimeRemaining: PHASE_CONFIG[PHASES[0]].duration,
+  phaseExtensionSeconds: 0,
   isTimerRunning: false,
   phaseRecords: [],
   startedAt: null,
@@ -44,6 +47,7 @@ export const usePracticeStore = create<PracticeStore>((set, get) => ({
       materialId,
       currentPhaseIndex: 0,
       phaseTimeRemaining: PHASE_CONFIG[PHASES[0]].duration,
+      phaseExtensionSeconds: 0,
       isTimerRunning: false,
       phaseRecords: [],
       startedAt: new Date().toISOString(),
@@ -66,7 +70,7 @@ export const usePracticeStore = create<PracticeStore>((set, get) => ({
     const totalTime = PHASE_CONFIG[currentPhase].duration
     const record: PhaseRecord = {
       phase: currentPhase,
-      duration: totalTime - state.phaseTimeRemaining,
+      duration: Math.max(0, totalTime + state.phaseExtensionSeconds - state.phaseTimeRemaining),
       completedAt: new Date().toISOString(),
     }
 
@@ -83,6 +87,7 @@ export const usePracticeStore = create<PracticeStore>((set, get) => ({
     set({
       currentPhaseIndex: nextIndex,
       phaseTimeRemaining: PHASE_CONFIG[nextPhaseName].duration,
+      phaseExtensionSeconds: 0,
       phaseRecords: [...state.phaseRecords, record],
       isTimerRunning: false,
     })
@@ -97,6 +102,7 @@ export const usePracticeStore = create<PracticeStore>((set, get) => ({
     set({
       currentPhaseIndex: prevIndex,
       phaseTimeRemaining: PHASE_CONFIG[prevPhase].duration,
+      phaseExtensionSeconds: 0,
       isTimerRunning: false,
     })
   },
@@ -107,8 +113,20 @@ export const usePracticeStore = create<PracticeStore>((set, get) => ({
     set({
       currentPhaseIndex: index,
       phaseTimeRemaining: PHASE_CONFIG[phase].duration,
+      phaseExtensionSeconds: 0,
       isTimerRunning: false,
     })
+  },
+
+  extendCurrentPhase: (seconds: number) => {
+    const safeSeconds = Math.max(0, Math.floor(seconds))
+    if (safeSeconds <= 0) return
+
+    set(state => ({
+      phaseTimeRemaining: state.phaseTimeRemaining + safeSeconds,
+      phaseExtensionSeconds: state.phaseExtensionSeconds + safeSeconds,
+      isTimerRunning: false,
+    }))
   },
 
   toggleTimer: () => {
