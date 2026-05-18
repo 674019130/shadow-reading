@@ -54,6 +54,8 @@ export default function PracticeContextPanel({
   onLoopCue,
 }: PracticeContextPanelProps) {
   const phaseConfig = PHASE_CONFIG[currentPhase]
+  const isRetellPhase = currentPhase === 'retelling'
+  const showCueTranslation = currentPhase === 'detailed-read'
   const weakStorageKey = `shadow-reading:weak:${material.id}`
   const retellStorageKey = `shadow-reading:retell:${material.id}`
   const [weakIssue, setWeakIssue] = useState<WeakIssue>('pronunciation')
@@ -130,6 +132,11 @@ export default function PracticeContextPanel({
               className="group mt-2 w-full text-left rounded-md px-3 py-2.5 bg-bg-inset hover:bg-bg-card transition-colors"
             >
               <p className="text-[14px] leading-6 text-text-primary">{currentCue.text}</p>
+              {showCueTranslation && currentCue.translation && (
+                <p className="mt-1.5 text-[12px] leading-5 text-text-muted">
+                  {currentCue.translation}
+                </p>
+              )}
               <p className="mt-2 text-[11px] font-mono text-text-muted tabular-nums">
                 {formatCueTime(currentCue.startTime)} - {formatCueTime(currentCue.endTime)}
               </p>
@@ -144,7 +151,14 @@ export default function PracticeContextPanel({
               className="mt-2 flex w-full items-start gap-2 text-left rounded-md px-3 py-2 hover:bg-bg-card/70 transition-colors"
             >
               <ChevronRight size={13} className="mt-1 shrink-0 text-text-muted" />
-              <span className="text-[12px] leading-5 text-text-secondary">{nextCue.text}</span>
+              <span className="min-w-0">
+                <span className="block text-[12px] leading-5 text-text-secondary">{nextCue.text}</span>
+                {showCueTranslation && nextCue.translation && (
+                  <span className="mt-0.5 block text-[11px] leading-5 text-text-muted/75">
+                    {nextCue.translation}
+                  </span>
+                )}
+              </span>
             </button>
           )}
 
@@ -220,20 +234,45 @@ export default function PracticeContextPanel({
           )}
         </section>
 
-        <section>
-          <SectionTitle icon={BookOpen} label={currentPhase === 'retelling' ? '复述 / Retell' : '准备复述 / Prepare Retell'} />
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {keywords.map(keyword => (
-              <span key={keyword} className="rounded-md bg-bg-card px-2 py-1 text-[10px] text-text-secondary">
-                {keyword}
-              </span>
-            ))}
+        <section
+          className={`rounded-lg border px-3 py-3 transition-colors ${
+            isRetellPhase ? 'border-border-active bg-accent-soft' : 'border-border-subtle bg-bg-inset/35'
+          }`}
+        >
+          <SectionTitle icon={BookOpen} label={isRetellPhase ? '复述 / Retell' : '复述提示 / Retell Cues'} />
+          <p className="mt-2 text-[11px] leading-5 text-text-muted">
+            用这些词串起 2-3 句英文。
+            <span className="block text-text-muted/60">Use these cues to retell the material in your own words.</span>
+          </p>
+
+          <div className="mt-3">
+            <p className="text-[10px] tracking-[0.12em] text-text-muted">关键词 / Key Words</p>
+            {keywords.length > 0 ? (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {keywords.map(keyword => (
+                  <span
+                    key={keyword}
+                    className={`rounded-md px-2 py-1 text-[10px] transition-colors ${
+                      isRetellPhase ? 'bg-bg-elevated text-text-primary' : 'bg-bg-card text-text-secondary'
+                    }`}
+                  >
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-1.5 text-[11px] text-text-muted/70">暂无关键词 / No cues yet</p>
+            )}
           </div>
+
+          <label className="mt-3 block text-[10px] tracking-[0.12em] text-text-muted">
+            我的复述 / My Retell
+          </label>
           <textarea
             value={retellDraft}
             onChange={(event) => setRetellDraft(event.target.value)}
             placeholder="用 2-3 句英语复述 / Retell in 2-3 sentences..."
-            className="mt-3 w-full resize-none rounded-md border border-border bg-bg-inset px-3 py-2 text-[12px] leading-5 text-text-primary placeholder:text-text-muted/40 outline-none transition-colors focus:border-border-active"
+            className="mt-1.5 w-full resize-none rounded-md border border-border bg-bg-inset px-3 py-2 text-[12px] leading-5 text-text-primary placeholder:text-text-muted/40 outline-none transition-colors focus:border-border-active"
             rows={5}
           />
         </section>

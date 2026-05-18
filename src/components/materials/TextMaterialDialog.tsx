@@ -1,18 +1,19 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, FileText, Loader2, Mic2, RefreshCw, Sparkles, X } from 'lucide-react'
+import { Check, Combine, FileText, Languages, Loader2, Mic2, RefreshCw, Scissors, Sparkles, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { createMaterial } from '@/lib/materials'
 import { DIFFICULTY_LABELS, bilingual } from '@/lib/labels'
 import {
   TEXT_REVISION_MODES,
   TTS_VOICES,
-  createEstimatedSubtitleCues,
+  createEstimatedSubtitleCuesFromSentences,
   createSpeechInstructions,
   estimateSpeechDuration,
   normalizeTextForPractice,
+  splitIntoSentences,
   type TextRevision,
   type TextRevisionMode,
   type TtsVoice,
@@ -22,6 +23,13 @@ import type { DifficultyLevel } from '@/lib/types'
 interface TextMaterialDialogProps {
   onClose: () => void
   onImported: () => void
+}
+
+interface EditableSentence {
+  id: string
+  text: string
+  translation: string
+  provider: string
 }
 
 export default function TextMaterialDialog({ onClose, onImported }: TextMaterialDialogProps) {
@@ -34,15 +42,52 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
   const [voice, setVoice] = useState<TtsVoice>('marin')
   const [audioPath, setAudioPath] = useState('')
   const [audioDuration, setAudioDuration] = useState(0)
+  const [sentenceRows, setSentenceRows] = useState<EditableSentence[]>([])
   const [checking, setChecking] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [translating, setTranslating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const nextSentenceId = useRef(0)
 
   const normalizedInput = useMemo(() => normalizeTextForPractice(inputText), [inputText])
   const practiceText = revision?.revisedText || normalizedInput
-  const estimatedDuration = estimateSpeechDuration(practiceText)
+  const confirmedSentences = useMemo(
+    () => sentenceRows.map(row => row.text.trim()).filter(Boolean),
+    [sentenceRows]
+  )
+  const confirmedTranslations = useMemo(
+    () => sentenceRows.map(row => row.translation.trim()),
+    [sentenceRows]
+  )
+  const confirmedText = confirmedSentences.join(' ')
+  const estimatedDuration = estimateSpeechDuration(confirmedText || practiceText)
   const canCheck = normalizedInput.length > 0 && normalizedInput.length <= 4096
-  const canGenerate = practiceText.length > 0 && practiceText.length <= 4096
+  const canGenerate = confirmedText.length > 0 && confirmedText.length <= 4096
+  const hasTranslations = sentenceRows.some(row => Boolean(row.translation.trim()))
+
+  const createSentenceRows = (text: string): EditableSentence[] => {
+    return splitIntoSentences(text).map(sentence => createSentenceRow(sentence))
+  }
+
+  const createSentenceRow = (
+    text: string,
+    translation = '',
+    provider = 'none'
+  ): EditableSentence => ({
+    id: `sentence-${nextSentenceId.current++}`,
+    text,
+    translation,
+    provider,
+  })
+
+  const resetSentencesFromText = (text: string) => {
+    setSentenceRows(createSentenceRows(text))
+  }
+
+  const clearGeneratedAudio = () => {
+    setAudioPath('')
+    setAudioDuration(0)
+  }
 
   const handleCheck = async () => {
     if (!canCheck) {
@@ -51,8 +96,7 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
     }
 
     setChecking(true)
-    setAudioPath('')
-    setAudioDuration(0)
+    clearGeneratedAudio()
     try {
       const response = await fetch('/api/text-material/revise', {
         method: 'POST',
@@ -63,12 +107,54 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
       const data = await parseJsonResponse<{ revision: TextRevision }>(response)
       setRevision(data.revision)
       setTitle(data.revision.titleSuggestion)
+      resetSentencesFromText(data.revision.revisedText)
       toast.success('英文已检查 / Text checked')
     } catch (error) {
       console.error(error)
       toast.error(error instanceof Error ? error.message : '文本检查失败 / Text check failed')
     } finally {
       setChecking(false)
+    }
+  }
+
+  const handleTranslate = async () => {
+    if (!canGenerate) {
+      toast.error('文本为空或太长 / Text is empty or too long.')
+      return
+    }
+
+    setTranslating(true)
+    try {
+      const response = await fetch('/api/text-material/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sentences: confirmedSentences }),
+      })
+
+      const data = await parseJsonResponse<{
+        translations: string[]
+        providers: string[]
+      }>(response)
+
+      const nextTranslations = Array.isArray(data.translations) ? data.translations : []
+      const nextProviders = Array.isArray(data.providers) ? data.providers : []
+      setSentenceRows(rows => rows.map((row, index) => ({
+        ...row,
+        translation: nextTranslations[index] || row.translation,
+        provider: nextProviders[index] || 'none',
+      })))
+      const translatedCount = nextTranslations.filter(Boolean).length
+
+      if (translatedCount > 0) {
+        toast.success(`中文翻译已生成 / ${translatedCount} lines translated`)
+      } else {
+        toast.error('免费翻译源暂时不可用 / Free translators are unavailable')
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error(error instanceof Error ? error.message : '翻译失败 / Translation failed')
+    } finally {
+      setTranslating(false)
     }
   }
 
@@ -79,14 +165,13 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
     }
 
     setGenerating(true)
-    setAudioPath('')
-    setAudioDuration(0)
+    clearGeneratedAudio()
     try {
       const response = await fetch('/api/text-material/speech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: practiceText,
+          text: confirmedText,
           mode,
           voice,
           instructions: createSpeechInstructions(mode),
@@ -117,9 +202,14 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
         title: title.trim() || revision?.titleSuggestion || 'Pasted English Practice',
         difficulty,
         source: 'text',
+        mediaType: 'audio',
         audioPath,
         duration,
-        subtitles: createEstimatedSubtitleCues(practiceText, duration),
+        subtitles: createEstimatedSubtitleCuesFromSentences(
+          confirmedSentences,
+          duration,
+          confirmedTranslations
+        ),
         description: 'AI-generated English speech from pasted text. Voice is AI-generated, not a human recording.',
         tags: ['text', 'ai-voice'],
       })
@@ -133,6 +223,60 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
     } finally {
       setSaving(false)
     }
+  }
+
+  const updateSentenceRow = (
+    index: number,
+    patch: Partial<Omit<EditableSentence, 'id'>>,
+    affectsAudio = false
+  ) => {
+    if (affectsAudio) clearGeneratedAudio()
+    setSentenceRows(rows => rows.map((row, rowIndex) => (
+      rowIndex === index ? { ...row, ...patch } : row
+    )))
+  }
+
+  const mergeSentenceWithPrevious = (index: number) => {
+    if (index <= 0) return
+
+    clearGeneratedAudio()
+    setSentenceRows(rows => {
+      const current = rows[index]
+      const previous = rows[index - 1]
+      if (!current || !previous) return rows
+
+      const merged: EditableSentence = {
+        ...previous,
+        text: [previous.text.trim(), current.text.trim()].filter(Boolean).join(' '),
+        translation: [previous.translation.trim(), current.translation.trim()].filter(Boolean).join(' '),
+        provider: previous.provider === current.provider ? previous.provider : 'manual',
+      }
+
+      return [
+        ...rows.slice(0, index - 1),
+        merged,
+        ...rows.slice(index + 1),
+      ]
+    })
+  }
+
+  const splitSentence = (index: number) => {
+    const row = sentenceRows[index]
+    if (!row) return
+
+    const parts = splitSentenceText(row.text)
+    if (!parts) {
+      toast.error('这句太短，暂时不能拆 / This unit is too short to split.')
+      return
+    }
+
+    clearGeneratedAudio()
+    setSentenceRows(rows => [
+      ...rows.slice(0, index),
+      createSentenceRow(parts[0]),
+      createSentenceRow(parts[1]),
+      ...rows.slice(index + 1),
+    ])
   }
 
   return (
@@ -165,10 +309,11 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
               <textarea
                 value={inputText}
                 onChange={(event) => {
-                  setInputText(event.target.value)
+                  const nextText = event.target.value
+                  setInputText(nextText)
                   setRevision(null)
-                  setAudioPath('')
-                  setAudioDuration(0)
+                  clearGeneratedAudio()
+                  resetSentencesFromText(nextText)
                 }}
                 placeholder="粘贴短段落、面试回答或日常表达 / Paste a short paragraph..."
                 className="w-full min-h-40 resize-y px-3 py-2 rounded-md bg-bg-inset border border-border text-[14px] leading-6 text-text-primary placeholder:text-text-muted/40 outline-none focus:border-border-active transition-colors"
@@ -184,8 +329,8 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
                     onClick={() => {
                       setMode(item.value)
                       setRevision(null)
-                      setAudioPath('')
-                      setAudioDuration(0)
+                      clearGeneratedAudio()
+                      resetSentencesFromText(normalizedInput)
                     }}
                     className={`px-2 py-2 rounded-md text-left transition-colors ${
                       mode === item.value ? 'bg-bg-elevated text-text-primary' : 'text-text-muted hover:text-text-secondary'
@@ -217,9 +362,10 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
                   <textarea
                     value={revision.revisedText}
                     onChange={(event) => {
-                      setRevision({ ...revision, revisedText: event.target.value })
-                      setAudioPath('')
-                      setAudioDuration(0)
+                      const nextText = event.target.value
+                      setRevision({ ...revision, revisedText: nextText })
+                      clearGeneratedAudio()
+                      resetSentencesFromText(nextText)
                     }}
                     className="w-full min-h-32 resize-y px-3 py-2 rounded-md bg-bg-inset border border-border text-[14px] leading-6 text-text-primary outline-none focus:border-border-active transition-colors"
                   />
@@ -240,6 +386,79 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {sentenceRows.length > 0 && (
+              <div className="rounded-lg border border-border-subtle bg-bg-inset/45 px-3 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <label className="block text-[11px] tracking-wider text-text-muted">
+                      分句预览 / Sentence units
+                    </label>
+                    <p className="mt-1 text-[11px] leading-5 text-text-muted/70">
+                      每一行就是跟读和循环的最小单位。
+                      <span className="block">Each row becomes one repeatable practice unit.</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleTranslate}
+                    disabled={translating || !canGenerate}
+                    className="flex shrink-0 items-center gap-1.5 rounded-md bg-bg-card px-2.5 py-1.5 text-[12px] text-text-secondary transition-colors hover:bg-bg-card-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {translating ? <Loader2 size={13} className="animate-spin" /> : <Languages size={13} />}
+                    {hasTranslations ? '重新翻译 / Retry' : '生成翻译 / Translate'}
+                  </button>
+                </div>
+
+                <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+                  {sentenceRows.map((row, index) => (
+                    <div key={row.id} className="rounded-md border border-border-subtle bg-bg-secondary/70 p-2">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="font-mono text-[10px] text-text-muted/55">
+                          {(index + 1).toString().padStart(2, '0')}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => mergeSentenceWithPrevious(index)}
+                            disabled={index === 0}
+                            className="flex items-center gap-1 rounded px-1.5 py-1 text-[10px] text-text-muted transition-colors hover:bg-bg-card hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-35"
+                          >
+                            <Combine size={11} />
+                            合并 / Merge
+                          </button>
+                          <button
+                            onClick={() => splitSentence(index)}
+                            className="flex items-center gap-1 rounded px-1.5 py-1 text-[10px] text-text-muted transition-colors hover:bg-bg-card hover:text-text-secondary"
+                          >
+                            <Scissors size={11} />
+                            拆分 / Split
+                          </button>
+                        </div>
+                      </div>
+                      <textarea
+                        value={row.text}
+                        onChange={(event) => updateSentenceRow(index, { text: event.target.value }, true)}
+                        rows={2}
+                        className="w-full resize-y rounded-md border border-border bg-bg-inset px-2 py-1.5 text-[12px] leading-5 text-text-primary outline-none transition-colors focus:border-border-active"
+                      />
+                      <textarea
+                        value={row.translation}
+                        onChange={(event) => updateSentenceRow(index, { translation: event.target.value, provider: 'manual' })}
+                        rows={2}
+                        placeholder="中文翻译 / Chinese translation..."
+                        className="mt-1.5 w-full resize-y rounded-md border border-border bg-bg-inset px-2 py-1.5 text-[12px] leading-5 text-text-secondary placeholder:text-text-muted/40 outline-none transition-colors focus:border-border-active"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mt-2 border-t border-border-subtle pt-2 text-[10px] text-text-muted/60">
+                  {sentenceRows.length} 句 / {sentenceRows.length} units
+                  {hasTranslations && (
+                    <span className="ml-2">来源 / Source: {formatProviderSummary(sentenceRows.map(row => row.provider))}</span>
+                  )}
+                </p>
               </div>
             )}
           </div>
@@ -280,8 +499,7 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
                     key={item.value}
                     onClick={() => {
                       setVoice(item.value)
-                      setAudioPath('')
-                      setAudioDuration(0)
+                      clearGeneratedAudio()
                     }}
                     className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-left transition-colors ${
                       voice === item.value ? 'bg-bg-elevated text-text-primary' : 'text-text-muted hover:text-text-secondary'
@@ -354,4 +572,59 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
     throw new Error(body?.error || 'Request failed')
   }
   return response.json() as Promise<T>
+}
+
+function formatProviderSummary(providers: string[]): string {
+  const counts = providers
+    .filter(provider => provider && provider !== 'none')
+    .reduce<Map<string, number>>((map, provider) => {
+      map.set(provider, (map.get(provider) || 0) + 1)
+      return map
+    }, new Map())
+
+  if (counts.size === 0) return 'none'
+
+  return [...counts.entries()]
+    .map(([provider, count]) => `${provider} ${count}`)
+    .join(' · ')
+}
+
+function splitSentenceText(text: string): [string, string] | null {
+  const normalized = text.trim()
+  if (normalized.length < 8) return null
+
+  const punctuationBreaks = [...normalized.matchAll(/[,;:—–-]\s+/g)]
+    .map(match => (match.index ?? 0) + match[0].length)
+    .filter(index => isUsableSplitIndex(normalized, index))
+
+  const splitIndex = punctuationBreaks.length > 0
+    ? closestToMiddle(punctuationBreaks, normalized.length)
+    : findWordSplitIndex(normalized)
+
+  if (!splitIndex) return null
+
+  const first = normalized.slice(0, splitIndex).trim()
+  const second = normalized.slice(splitIndex).trim()
+  if (!first || !second) return null
+
+  return [first, second]
+}
+
+function findWordSplitIndex(text: string): number | null {
+  const boundaries = [...text.matchAll(/\s+/g)]
+    .map(match => match.index ?? 0)
+    .filter(index => isUsableSplitIndex(text, index))
+
+  return boundaries.length > 0 ? closestToMiddle(boundaries, text.length) : null
+}
+
+function closestToMiddle(indices: number[], length: number): number {
+  const middle = length / 2
+  return indices.reduce((best, index) => (
+    Math.abs(index - middle) < Math.abs(best - middle) ? index : best
+  ), indices[0])
+}
+
+function isUsableSplitIndex(text: string, index: number): boolean {
+  return index >= 4 && text.length - index >= 4
 }

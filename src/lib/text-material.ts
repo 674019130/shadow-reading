@@ -1,3 +1,4 @@
+import { SentenceSplitterSyntax, split as splitTextIntoSentenceNodes } from 'sentence-splitter'
 import type { SubtitleCue } from './types'
 
 export type TextRevisionMode = 'grammar' | 'natural' | 'spoken'
@@ -68,9 +69,9 @@ export function splitIntoSentences(text: string): string[] {
 
   if (!normalized) return []
 
-  const matches = normalized.match(/[^.!?]+(?:[.!?]+["')\]]*)?|[^.!?]+$/g) || []
-  return matches
-    .map(sentence => sentence.trim())
+  return splitTextIntoSentenceNodes(normalized)
+    .filter(node => node.type === SentenceSplitterSyntax.Sentence)
+    .map(node => node.raw.trim())
     .filter(Boolean)
 }
 
@@ -79,16 +80,28 @@ export function estimateSpeechDuration(text: string): number {
   return Math.max(4, Math.ceil((wordCount / 145) * 60))
 }
 
-export function createEstimatedSubtitleCues(text: string, duration: number): SubtitleCue[] {
-  const sentences = splitIntoSentences(text)
-  if (sentences.length === 0) return []
+export function createEstimatedSubtitleCues(
+  text: string,
+  duration: number,
+  translations: string[] = []
+): SubtitleCue[] {
+  return createEstimatedSubtitleCuesFromSentences(splitIntoSentences(text), duration, translations)
+}
 
-  const totalWeight = sentences.reduce((sum, sentence) => sum + sentenceWeight(sentence), 0)
-  const safeDuration = Math.max(duration, sentences.length * 1.8)
+export function createEstimatedSubtitleCuesFromSentences(
+  sentences: string[],
+  duration: number,
+  translations: string[] = []
+): SubtitleCue[] {
+  const cleanSentences = sentences.map(sentence => sentence.trim()).filter(Boolean)
+  if (cleanSentences.length === 0) return []
+
+  const totalWeight = cleanSentences.reduce((sum, sentence) => sum + sentenceWeight(sentence), 0)
+  const safeDuration = Math.max(duration, cleanSentences.length * 1.8)
   let cursor = 0
 
-  return sentences.map((sentence, index) => {
-    const isLast = index === sentences.length - 1
+  return cleanSentences.map((sentence, index) => {
+    const isLast = index === cleanSentences.length - 1
     const rawLength = isLast
       ? safeDuration - cursor
       : (safeDuration * sentenceWeight(sentence)) / totalWeight
@@ -98,11 +111,14 @@ export function createEstimatedSubtitleCues(text: string, duration: number): Sub
 
     cursor = endTime
 
+    const translation = translations[index]?.trim()
+
     return {
       index,
       startTime,
       endTime,
       text: sentence,
+      ...(translation ? { translation } : {}),
     }
   })
 }

@@ -2,9 +2,9 @@
 
 # Shadow Reading
 
-**An immersive English speaking practice tool built on the shadow reading method (影子跟读法)**
+**A personal daily English training tool for listening, reading, shadowing, recording, and retelling.**
 
-Listen to native speakers, follow along like a shadow, and build fluency through daily guided sessions.
+把英文材料导入进来，按 20 分钟左右的轻量流程练一遍：先听懂，再看懂，再跟读，最后录音和复述。
 
 [![Next.js](https://img.shields.io/badge/Next.js_16-000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React_19-61DAFB?logo=react&logoColor=000)](https://react.dev/)
@@ -18,36 +18,41 @@ Listen to native speakers, follow along like a shadow, and build fluency through
 
 ![Home](docs/screenshot-home.png)
 
-## Practice Mode
+## What It Does
 
-Full-screen immersive interface with waveform audio player, synchronized subtitles, and a 5-phase guided session flow.
+Shadow Reading is built around one repeatable daily loop:
+
+```text
+Listen -> Read -> Shadow -> Record -> Retell
+```
+
+The app gives each phase a clear focus, but phase changes are manual. Timers can suggest that it is time to move on, while the user stays in control of when to advance.
+
+## Core Workflow
+
+1. Import or create a material.
+2. Confirm sentence units and optional Chinese translations.
+3. Practice through the five phases.
+4. Loop difficult sentences with a small lead-in and tail buffer.
+5. Record yourself and retell the material from memory.
 
 ![Practice](docs/screenshot-practice.png)
 
-## Double-click Dictionary
-
-Double-click any word in the subtitles for instant bilingual lookup — English definition + Chinese translation, with pronunciation and examples.
-
-![Dictionary](docs/screenshot-dictionary.png)
-
 ## Features
 
-```
- Listen  ───▶  Read  ───▶  Shadow  ───▶  Record  ───▶  Retell
-  3 min        3 min       10 min         3 min         1 min
-```
+- **Five-phase practice flow**: blind listening, detailed reading, shadowing, recording, and retelling.
+- **Manual phase progression**: the current audio/video is reset at phase boundaries so each stage starts cleanly.
+- **Text-to-material import**: paste English text, check grammar, rewrite it naturally, generate AI speech, then practice it immediately.
+- **Editable sentence units**: automatic sentence splitting uses `sentence-splitter`, then lets you edit, split, and merge rows before saving.
+- **Chinese translations**: generate per-sentence Chinese translations during text import and show bilingual lines during reading.
+- **Audio and video import**: upload local audio/video files with optional SRT, VTT, TXT, or JSON subtitles.
+- **YouTube import**: paste a YouTube URL to download audio and English subtitles through `yt-dlp`.
+- **Buffered sentence loop**: loop the current sentence with adjusted start/end boundaries instead of cutting too tightly.
+- **Bilingual dictionary**: double-click a word for English definitions, Chinese translation, and US/UK pronunciation rows.
+- **Local-first materials**: imported and generated materials are stored locally under `data/materials`.
+- **Keyboard-first practice**: playback, looping, subtitle visibility, recording, and speed controls are available from the keyboard.
 
-- **Waveform Audio Player** — wavesurfer.js with speed control (0.5x – 1.5x), skip, and restart
-- **Synchronized Subtitles** — SRT/VTT/JSON parsing with binary search time sync and auto-scroll
-- **5-Phase Guided Practice** — structured 20-minute sessions following proven shadowing methodology
-- **Sentence Loop** — click any subtitle to seek; press `L` to loop the current sentence
-- **Voice Recording** — record yourself and compare side-by-side with the original audio
-- **Bilingual Dictionary** — double-click any word for instant EN/CN definition lookup
-- **YouTube Import** — paste a URL to auto-download audio + English subtitles via yt-dlp
-- **Local File Import** — drag and drop MP3 + SRT file pairs
-- **Progress Tracking** — practice streak calendar, comprehension trends, session history
-- **Session Assessment** — rate your performance with comprehension %, sync loss count, and notes
-- **Keyboard-First** — full shortcut support for distraction-free practice
+![Dictionary](docs/screenshot-dictionary.png)
 
 ## Keyboard Shortcuts
 
@@ -62,51 +67,87 @@ Double-click any word in the subtitles for instant bilingual lookup — English 
 
 ## Getting Started
 
-**Prerequisites:** Node.js 20+, pnpm, yt-dlp (for YouTube import), ffmpeg
+**Prerequisites:** Node.js 20+, pnpm. For YouTube import, install `yt-dlp` and `ffmpeg`.
 
 ```bash
 git clone https://github.com/674019130/shadow-reading.git
 cd shadow-reading
 pnpm install
 pnpm dev
-# → http://localhost:3000
 ```
 
-A built-in TED Talk is included as starter material. Import more via YouTube URL or local files.
+Open `http://localhost:3000`. To use another port:
+
+```bash
+PORT=3100 pnpm dev
+```
+
+A built-in TED Talk is included as starter material. New materials can come from pasted text, local audio/video files, or YouTube.
+
+## Environment Variables
+
+OpenAI is only required for AI text revision and AI speech generation. The rest of the app can still run without it.
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `OPENAI_API_KEY` | For text revision and speech | Enables pasted-text checking, rewriting, and TTS generation |
+| `OPENAI_TEXT_MODEL` | No | Overrides the text revision model, default `gpt-4.1-mini` |
+| `OPENAI_TTS_MODEL` | No | Overrides the speech model, default `gpt-4o-mini-tts` |
+| `LIBRETRANSLATE_URL` | No | Preferred LibreTranslate endpoint for Chinese translation |
+| `LIBRETRANSLATE_URLS` | No | Comma-separated LibreTranslate endpoints to try |
+| `LIBRETRANSLATE_API_KEY` | No | API key for LibreTranslate-compatible endpoints |
+
+Chinese translation uses free providers opportunistically, currently MyMemory and LibreTranslate-compatible endpoints. Availability and translation quality can vary.
+
+## Material Storage
+
+```text
+data/
+├── materials/
+│   ├── index.json        # local material index
+│   └── *.mp3 / *.mp4    # uploaded or generated media
+└── youtube-cache/        # cached YouTube downloads
+
+public/
+└── starter-materials/    # built-in starter audio and subtitles
+```
+
+Generated text materials save AI speech as local media and store estimated subtitle timings from the confirmed sentence rows.
+
+## Verification
+
+```bash
+pnpm lint
+node --experimental-strip-types --test \
+  tests/server-materials.test.mts \
+  tests/text-material.test.mts \
+  tests/practice-store.test.mts \
+  tests/loop-range.test.mts
+pnpm build
+```
 
 ## Tech Stack
 
 | Category | Technology |
-|----------|-----------|
+|----------|------------|
 | Framework | Next.js 16, React 19, TypeScript |
-| Styling | Tailwind CSS 4, OKLCH color system |
+| Styling | Tailwind CSS 4 |
 | Audio | wavesurfer.js |
+| Video | Native HTML video |
 | Recording | Web MediaRecorder API |
-| Storage | Dexie.js (IndexedDB) |
+| Local DB | Dexie.js and local JSON material index |
 | State | Zustand |
 | Charts | Recharts |
-| Dictionary | [Free Dictionary API](https://dictionaryapi.dev) + [MyMemory](https://mymemory.translated.net) |
-| Import | yt-dlp + ffmpeg |
+| Sentence splitting | sentence-splitter |
+| Dictionary | Free Dictionary API + MyMemory |
+| AI text and speech | OpenAI Responses API + Audio Speech API |
+| Import | Local upload, YouTube through yt-dlp and ffmpeg |
 
-## Project Structure
+## Notes
 
-```
-src/
-├── app/                      # Pages + API routes
-│   ├── page.tsx              # Home dashboard
-│   ├── practice/[id]/        # Practice mode
-│   ├── materials/            # Material library
-│   ├── progress/             # Progress dashboard
-│   └── api/                  # Upload, serve, YouTube
-├── components/
-│   ├── practice/             # AudioPlayer, SubtitleDisplay, RecordingPanel,
-│   │                         # SessionTimer, DictionaryPopup, AssessmentDialog
-│   ├── materials/            # MaterialsLibrary, ImportDialog
-│   ├── progress/             # ProgressDashboard
-│   └── layout/               # AppShell, Sidebar
-├── stores/                   # Zustand practice session store
-└── lib/                      # DB, SRT parser, recorder, types
-```
+- Generated speech subtitle timing is estimated from confirmed sentence lengths, not word-level forced alignment.
+- Free translation is best treated as a draft. The text import screen allows manual correction before saving.
+- Local uploaded media is served with range requests so audio and video seeking works in the practice page.
 
 ## License
 

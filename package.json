@@ -21,6 +21,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
+    "sentence-splitter": "5.0.1",
     "sonner": "^2.0.7",
     "wavesurfer.js": "^7.12.5",
     "zustand": "^5.0.12"

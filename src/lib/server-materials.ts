@@ -1,12 +1,13 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join, normalize } from 'node:path'
 import { nanoid } from 'nanoid'
-import type { DifficultyLevel, Material, MaterialSource, SubtitleCue } from './types'
+import type { DifficultyLevel, Material, MaterialSource, MediaType, SubtitleCue } from './types'
 
 export interface CreateMaterialData {
   title: string
   difficulty: DifficultyLevel
   source: MaterialSource
+  mediaType?: MediaType
   audioPath: string
   duration: number
   subtitles: SubtitleCue[]
@@ -77,6 +78,7 @@ export function createLocalMaterialsStore(rootDir = process.cwd()): LocalMateria
       description: data.description,
       difficulty: data.difficulty,
       source: data.source,
+      mediaType: data.mediaType,
       audioPath: data.audioPath,
       duration: data.duration,
       subtitles: data.subtitles,
@@ -147,6 +149,7 @@ export function createLocalMaterialsStore(rootDir = process.cwd()): LocalMateria
       description: 'TED Talk on the art of speaking. Clear enunciation, moderate pace — great for intermediate shadow reading.',
       difficulty: 'intermediate',
       source: 'builtin',
+      mediaType: 'audio',
       audioPath: '/starter-materials/ted-julian-treasure.mp3',
       duration: 598,
       subtitles: parseSRT(srtText),

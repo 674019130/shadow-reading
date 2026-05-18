@@ -8,6 +8,7 @@ interface SubtitleDisplayProps {
   subtitles: SubtitleCue[]
   currentTime: number
   visible: boolean
+  showTranslations?: boolean
   onCueClick?: (cue: SubtitleCue) => void
 }
 
@@ -15,6 +16,7 @@ export default function SubtitleDisplay({
   subtitles,
   currentTime,
   visible,
+  showTranslations = false,
   onCueClick,
 }: SubtitleDisplayProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -91,7 +93,7 @@ export default function SubtitleDisplay({
     <>
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto py-2 space-y-px max-h-[320px]"
+        className="min-h-0 flex-1 overflow-y-auto py-2 space-y-px"
         onDoubleClick={handleDoubleClick}
       >
         {subtitles.map((cue, i) => {
@@ -118,19 +120,31 @@ export default function SubtitleDisplay({
               >
                 {formatCueTime(cue.startTime)}
               </span>
-              <span
-                className={`
-                  subtitle-text transition-colors select-text
-                  ${isActive
-                    ? 'text-text-primary'
-                    : isPast
-                      ? 'text-text-muted/60'
-                      : 'text-text-secondary group-hover:text-text-primary'
-                  }
-                `}
-              >
-                {cue.text}
-              </span>
+              <div className="min-w-0 flex-1">
+                <p
+                  className={`
+                    subtitle-text transition-colors select-text
+                    ${isActive
+                      ? 'text-text-primary'
+                      : isPast
+                        ? 'text-text-muted/60'
+                        : 'text-text-secondary group-hover:text-text-primary'
+                    }
+                  `}
+                >
+                  {cue.text}
+                </p>
+                {showTranslations && cue.translation && (
+                  <p
+                    className={`
+                      mt-1 text-[13px] leading-6 transition-colors
+                      ${isActive ? 'text-text-secondary' : 'text-text-muted/70'}
+                    `}
+                  >
+                    {cue.translation}
+                  </p>
+                )}
+              </div>
             </div>
           )
         })}

@@ -1,4 +1,5 @@
 import type { SubtitleCue } from './types'
+import { splitIntoSentences } from './text-material'
 
 /**
  * Parse SRT subtitle format into SubtitleCue array.
@@ -81,10 +82,7 @@ function parseTimestamp(
  * Useful for transcripts without timestamps.
  */
 export function parsePlainText(content: string, totalDuration: number): SubtitleCue[] {
-  const sentences = content
-    .split(/[.!?]+/)
-    .map(s => s.trim())
-    .filter(Boolean)
+  const sentences = splitIntoSentences(content)
 
   if (sentences.length === 0) return []
 
@@ -94,7 +92,7 @@ export function parsePlainText(content: string, totalDuration: number): Subtitle
     index,
     startTime: index * interval,
     endTime: (index + 1) * interval,
-    text: text + '.',
+    text,
   }))
 }
 

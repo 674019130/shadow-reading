@@ -106,6 +106,7 @@ export default function MaterialsLibrary() {
               <div className="flex items-center gap-3 mt-1 text-[12px] text-text-muted">
                 <DifficultyDot level={m.difficulty} />
                 <span>{formatDuration(m.duration)}</span>
+                {m.mediaType === 'video' && <span>视频 / Video</span>}
                 {m.practiceCount > 0 && <span>{m.practiceCount} 次 / {m.practiceCount}x</span>}
                 {m.source !== 'local' && <span>{bilingual(SOURCE_LABELS[m.source])}</span>}
               </div>

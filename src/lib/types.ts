@@ -1,11 +1,13 @@
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced'
 export type MaterialSource = 'local' | 'youtube' | 'builtin' | 'text'
+export type MediaType = 'audio' | 'video'
 
 export interface SubtitleCue {
   index: number
   startTime: number  // seconds (float)
   endTime: number
   text: string
+  translation?: string
 }
 
 export interface Material {
@@ -14,6 +16,7 @@ export interface Material {
   description?: string
   difficulty: DifficultyLevel
   source: MaterialSource
+  mediaType?: MediaType
   audioPath: string
   duration: number
   subtitles: SubtitleCue[]

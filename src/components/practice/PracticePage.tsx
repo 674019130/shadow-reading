@@ -10,6 +10,7 @@ import SessionTimer from './SessionTimer'
 import AssessmentDialog from './AssessmentDialog'
 import PracticeContextPanel from './PracticeContextPanel'
 import ThemeToggle from '@/components/theme/ThemeToggle'
+import { createSentenceLoopRange } from '@/lib/loop-range'
 import { PHASE_CONFIG, PHASES } from '@/lib/types'
 import { getMaterial, updateMaterialPractice } from '@/lib/materials'
 import { usePracticeStore } from '@/stores/practice-store'
@@ -20,6 +21,7 @@ import type { SubtitleCue, PracticePhase, Material, SessionAssessment } from '@/
 import type { AudioPlayerHandle } from './AudioPlayer'
 
 const AudioPlayer = dynamic(() => import('./AudioPlayer'), { ssr: false })
+const VideoPlayer = dynamic(() => import('./VideoPlayer'), { ssr: false })
 
 interface PracticePageProps {
   materialId: string
@@ -64,6 +66,11 @@ export default function PracticePage({ materialId }: PracticePageProps) {
     return material.subtitles[currentIndex + 1] || null
   }, [material, currentCue, currentTime])
 
+  const loopRange = useMemo(() => {
+    if (!material || !loopCue) return null
+    return createSentenceLoopRange(loopCue, material.duration)
+  }, [material, loopCue])
+
   // Load material from DB
   useEffect(() => {
     async function load() {
@@ -86,38 +93,56 @@ export default function PracticePage({ materialId }: PracticePageProps) {
     playerRef.current?.seekTo(cue.startTime)
   }, [])
 
+  const handleLoopCueChange = useCallback((cue: SubtitleCue | null) => {
+    setLoopCue(cue)
+    if (!cue || !material) return
+
+    const range = createSentenceLoopRange(cue, material.duration)
+    playerRef.current?.seekTo(range.startTime)
+  }, [material])
+
   // Sentence loop
   useEffect(() => {
-    if (!loopCue) return
-    if (currentTime >= loopCue.endTime) {
-      playerRef.current?.seekTo(loopCue.startTime)
+    if (!loopRange) return
+    if (currentTime >= loopRange.endTime || currentTime < loopRange.startTime - 0.08) {
+      playerRef.current?.seekTo(loopRange.startTime)
     }
-  }, [currentTime, loopCue])
+  }, [currentTime, loopRange])
 
   const toggleLoop = useCallback(() => {
     if (loopCue) {
-      setLoopCue(null)
+      handleLoopCueChange(null)
       return
     }
     if (!material) return
     const cue = material.subtitles.find(
       c => currentTime >= c.startTime && currentTime <= c.endTime
     )
-    if (cue) setLoopCue(cue)
-  }, [loopCue, material, currentTime])
+    if (cue) handleLoopCueChange(cue)
+  }, [currentTime, handleLoopCueChange, loopCue, material])
 
-  // Phase change handler — auto-toggle subtitles
-  const handlePhaseChange = useCallback((phase: string) => {
-    const config = PHASE_CONFIG[phase as PracticePhase]
-    if (config) {
-      setSubtitleVisible(config.subtitleVisible)
-      // Show recording panel during record phase
-      setShowRecording(phase === 'record-compare')
-    }
+  const resetPlayerForPhase = useCallback((phase: PracticePhase) => {
+    const config = PHASE_CONFIG[phase]
+
+    playerRef.current?.pause()
+    playerRef.current?.seekTo(0)
+    setCurrentTime(0)
+    setLoopCue(null)
+    setSubtitleVisible(config.subtitleVisible)
+    setShowRecording(phase === 'record-compare')
   }, [])
+
+  // Phase change handler — apply a clear playback boundary for every phase.
+  const handlePhaseChange = useCallback((phase: string) => {
+    if (!PHASES.includes(phase as PracticePhase)) return
+    resetPlayerForPhase(phase as PracticePhase)
+  }, [resetPlayerForPhase])
 
   // Session complete handler
   const handleSessionComplete = useCallback(() => {
+    playerRef.current?.pause()
+    setLoopCue(null)
+    setShowRecording(false)
     setShowAssessment(true)
   }, [])
 
@@ -203,6 +228,8 @@ export default function PracticePage({ materialId }: PracticePageProps) {
   const phaseConfig = PHASE_CONFIG[currentPhase]
   const nextPhaseConfig = nextPhaseName ? PHASE_CONFIG[nextPhaseName] : null
   const isPhaseTimeUp = isSessionActive && phaseTimeRemaining <= 0
+  const mediaType = material.mediaType || 'audio'
+  const showTranslations = currentPhase === 'detailed-read'
 
   return (
     <div className="h-screen w-full bg-bg-primary flex flex-col overflow-hidden">
@@ -287,8 +314,11 @@ export default function PracticePage({ materialId }: PracticePageProps) {
 
       {/* Content */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        <div className="grid h-full w-full max-w-[1320px] grid-cols-1 gap-8 px-6 pt-4 pb-6 mx-auto xl:grid-cols-[minmax(0,768px)_minmax(290px,360px)]">
-          <div className="flex min-h-0 flex-col overflow-y-auto pb-10">
+        <div
+          data-practice-workspace
+          className="grid h-full w-full grid-cols-1 gap-5 px-5 pt-3 pb-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] 2xl:grid-cols-[minmax(0,1fr)_400px]"
+        >
+          <div data-practice-main className="flex min-h-0 flex-col overflow-hidden">
             <div
               className={`mb-4 rounded-lg border px-4 py-3 transition-colors ${
                 isPhaseTimeUp ? 'bg-bg-card border-border-active' : 'bg-transparent border-border-subtle'
@@ -338,13 +368,22 @@ export default function PracticePage({ materialId }: PracticePageProps) {
               </div>
             </div>
 
-            <div className="mb-6">
-              <AudioPlayer
-                ref={playerRef}
-                audioUrl={material.audioPath}
-                onTimeUpdate={handleTimeUpdate}
-                onReady={handleReady}
-              />
+            <div className="mb-5">
+              {mediaType === 'video' ? (
+                <VideoPlayer
+                  ref={playerRef}
+                  videoUrl={material.audioPath}
+                  onTimeUpdate={handleTimeUpdate}
+                  onReady={handleReady}
+                />
+              ) : (
+                <AudioPlayer
+                  ref={playerRef}
+                  audioUrl={material.audioPath}
+                  onTimeUpdate={handleTimeUpdate}
+                  onReady={handleReady}
+                />
+              )}
             </div>
 
             {/* Loop indicator bar */}
@@ -353,9 +392,14 @@ export default function PracticePage({ materialId }: PracticePageProps) {
                 <Repeat size={11} />
                 <span className="truncate">
                   循环 / Looping: &ldquo;{loopCue.text.slice(0, 60)}{loopCue.text.length > 60 ? '...' : ''}&rdquo;
+                  {loopRange && (
+                    <span className="ml-2 text-accent/65">
+                      {formatLoopTime(loopRange.startTime)} - {formatLoopTime(loopRange.endTime)}
+                    </span>
+                  )}
                 </span>
                 <button
-                  onClick={() => setLoopCue(null)}
+                  onClick={() => handleLoopCueChange(null)}
                   className="ml-auto shrink-0 text-accent/60 hover:text-accent transition-colors"
                 >
                   停止 / Stop
@@ -367,6 +411,7 @@ export default function PracticePage({ materialId }: PracticePageProps) {
               subtitles={material.subtitles}
               currentTime={currentTime}
               visible={subtitleVisible}
+              showTranslations={showTranslations}
               onCueClick={handleCueClick}
             />
 
@@ -387,14 +432,14 @@ export default function PracticePage({ materialId }: PracticePageProps) {
             nextCue={nextCue}
             loopCue={loopCue}
             onCueClick={handleCueClick}
-            onLoopCue={setLoopCue}
+            onLoopCue={handleLoopCueChange}
           />
         </div>
       </div>
 
       {/* Phase bar */}
-      <div className="shrink-0 px-6 pb-4 pt-2">
-        <div className="max-w-[1320px] mx-auto">
+      <div className="shrink-0 px-5 pb-4 pt-2">
+        <div data-phase-rail className="w-full">
           <div className="flex items-center gap-2">
             {PHASES.map((phase, i) => {
               const config = PHASE_CONFIG[phase]
@@ -446,4 +491,10 @@ export default function PracticePage({ materialId }: PracticePageProps) {
       )}
     </div>
   )
+}
+
+function formatLoopTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = Math.floor(seconds % 60)
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
 }

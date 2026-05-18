@@ -15,7 +15,8 @@ test('local materials store persists material records on disk', async () => {
       title: 'Daily Shadowing Sample',
       difficulty: 'beginner',
       source: 'local',
-      audioPath: '/api/materials/serve/sample.mp3',
+      mediaType: 'video',
+      audioPath: '/api/materials/serve/sample.mp4',
       duration: 36,
       subtitles: [
         {
@@ -34,6 +35,7 @@ test('local materials store persists material records on disk', async () => {
     assert.equal(materials.length, 1)
     assert.equal(materials[0].id, material.id)
     assert.equal(materials[0].title, 'Daily Shadowing Sample')
+    assert.equal(materials[0].mediaType, 'video')
     assert.equal(materials[0].practiceCount, 0)
   } finally {
     await rm(rootDir, { recursive: true, force: true })

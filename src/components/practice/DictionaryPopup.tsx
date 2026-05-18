@@ -6,11 +6,24 @@ import { X, Volume2, Loader2 } from 'lucide-react'
 interface DictEntry {
   word: string
   phonetic?: string
-  phonetics?: { audio?: string; text?: string }[]
+  phonetics?: DictPhonetic[]
   meanings: {
     partOfSpeech: string
     definitions: { definition: string; example?: string }[]
   }[]
+}
+
+interface DictPhonetic {
+  audio?: string
+  text?: string
+  sourceUrl?: string
+}
+
+interface PronunciationItem {
+  key: string
+  label: string
+  text: string | null
+  audio: string | null
 }
 
 interface LookupState {
@@ -28,6 +41,16 @@ interface DictionaryPopupProps {
 }
 
 const EMPTY_DEFS = new Map<string, string>()
+const POPUP_WIDTH = 320
+const VIEWPORT_MARGIN = 16
+const ANCHOR_GAP = 8
+
+interface PopupPlacement {
+  left: number
+  top: number
+  maxHeight: number
+  bodyMaxHeight: number
+}
 
 async function fetchChineseTranslation(word: string): Promise<string | null> {
   try {
@@ -153,9 +176,12 @@ export default function DictionaryPopup({ word, position, onClose }: DictionaryP
     }
   }, [onClose])
 
+  const placement = getPopupPlacement(position, 360)
+
   const style: React.CSSProperties = {
-    left: Math.min(position.x, window.innerWidth - 340),
-    top: position.y + 8,
+    left: placement.left,
+    top: placement.top,
+    maxHeight: placement.maxHeight,
   }
 
   const playAudio = (url: string) => {
@@ -169,13 +195,14 @@ export default function DictionaryPopup({ word, position, onClose }: DictionaryP
   const loading = Boolean(cleanedWord) && !hasCurrentLookup
   const error = cleanedWord ? (hasCurrentLookup ? lookup.error : null) : 'Not a word'
 
-  const audioUrl = entry?.phonetics?.find(p => p.audio)?.audio
-  const phoneticText = entry?.phonetic || entry?.phonetics?.find(p => p.text)?.text
+  const pronunciations = getPronunciations(entry)
 
   return (
     <div
       ref={popupRef}
-      className="fixed z-50 w-80 bg-bg-elevated border border-border rounded-lg shadow-lg overflow-hidden"
+      role="dialog"
+      aria-label="Dictionary lookup"
+      className="fixed z-50 w-[min(20rem,calc(100vw-2rem))] bg-bg-elevated border border-border rounded-lg shadow-lg overflow-hidden"
       style={style}
     >
       {loading ? (
@@ -188,7 +215,7 @@ export default function DictionaryPopup({ word, position, onClose }: DictionaryP
             <p className="text-[14px] font-medium text-text-primary">{word}</p>
             <p className="text-[12px] text-text-muted mt-0.5">{error}</p>
           </div>
-          <button onClick={onClose} className="p-1 text-text-muted hover:text-text-secondary">
+          <button onClick={onClose} aria-label="Close dictionary" className="p-1 text-text-muted hover:text-text-secondary">
             <X size={14} />
           </button>
         </div>
@@ -201,32 +228,52 @@ export default function DictionaryPopup({ word, position, onClose }: DictionaryP
                 <span className="text-[16px] font-semibold text-text-primary">
                   {entry?.word || word}
                 </span>
-                {audioUrl && (
-                  <button
-                    onClick={() => playAudio(audioUrl)}
-                    className="p-1 rounded text-accent hover:text-accent-hover transition-colors"
-                  >
-                    <Volume2 size={14} />
-                  </button>
-                )}
               </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                {phoneticText && (
-                  <span className="text-[12px] text-text-muted font-mono">{phoneticText}</span>
+              <div className="mt-1.5 space-y-1">
+                {pronunciations.length > 0 && (
+                  <div className="space-y-1">
+                    {pronunciations.map(item => {
+                      const audio = item.audio
+                      return (
+                        <div key={item.key} className="flex items-center gap-2 text-[12px]">
+                          <span className="min-w-7 rounded bg-bg-inset px-1.5 py-0.5 text-[10px] font-medium text-text-muted">
+                            {item.label}
+                          </span>
+                          {item.text ? (
+                            <span className="font-mono text-text-muted">{item.text}</span>
+                          ) : (
+                            <span className="text-text-muted/70">audio</span>
+                          )}
+                          {audio && (
+                            <button
+                              onClick={() => playAudio(audio)}
+                              className="rounded p-0.5 text-accent transition-colors hover:text-accent-hover"
+                              aria-label={`Play ${item.label} pronunciation for ${entry?.word || word}`}
+                            >
+                              <Volume2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
                 {zhWord && (
-                  <span className="text-[13px] text-orange font-medium">{zhWord}</span>
+                  <span className="block text-[13px] text-orange font-medium">{zhWord}</span>
                 )}
               </div>
             </div>
-            <button onClick={onClose} className="p-1 text-text-muted hover:text-text-secondary shrink-0">
+            <button onClick={onClose} aria-label="Close dictionary" className="p-1 text-text-muted hover:text-text-secondary shrink-0">
               <X size={14} />
             </button>
           </div>
 
           {/* Meanings */}
           {entry && (
-            <div className="px-4 pb-3 pt-1 max-h-56 overflow-y-auto space-y-2.5">
+            <div
+              className="px-4 pb-3 pt-1 overflow-y-auto space-y-2.5"
+              style={{ maxHeight: placement.bodyMaxHeight }}
+            >
               {entry.meanings.slice(0, 3).map((meaning, mi) => (
                 <div key={mi}>
                   <span className="text-[10px] uppercase tracking-wider text-accent/70">
@@ -264,4 +311,102 @@ export default function DictionaryPopup({ word, position, onClose }: DictionaryP
       )}
     </div>
   )
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(value, max))
+}
+
+function getPronunciations(entry: DictEntry | null): PronunciationItem[] {
+  if (!entry) return []
+
+  const items = (entry.phonetics || [])
+    .map((phonetic, index) => {
+      const label = inferPronunciationLabel(phonetic, index)
+      return {
+        key: `${label}-${phonetic.text || ''}-${phonetic.audio || index}`,
+        label,
+        text: cleanPhoneticText(phonetic.text),
+        audio: phonetic.audio || null,
+      }
+    })
+    .filter(item => item.text || item.audio)
+
+  const merged = new Map<string, PronunciationItem>()
+  for (const item of items) {
+    const key = `${item.label}-${item.text || ''}`
+    const existing = merged.get(key)
+    if (!existing) {
+      merged.set(key, item)
+      continue
+    }
+
+    if (!existing.audio && item.audio) {
+      merged.set(key, { ...existing, audio: item.audio })
+    }
+  }
+
+  const pronunciations = [...merged.values()]
+    .sort((a, b) => pronunciationRank(a.label) - pronunciationRank(b.label))
+
+  if (pronunciations.length > 0) return pronunciations
+
+  const fallback = cleanPhoneticText(entry.phonetic)
+  return fallback
+    ? [{ key: `ipa-${fallback}`, label: 'IPA', text: fallback, audio: null }]
+    : []
+}
+
+function inferPronunciationLabel(phonetic: DictPhonetic, index: number): string {
+  const source = `${phonetic.audio || ''} ${phonetic.sourceUrl || ''}`.toLowerCase()
+  if (source.includes('-us') || source.includes('_us') || source.includes('us.')) return 'US'
+  if (source.includes('-uk') || source.includes('_uk') || source.includes('uk.')) return 'UK'
+  return index === 0 ? 'IPA' : `IPA ${index + 1}`
+}
+
+function pronunciationRank(label: string): number {
+  if (label === 'US') return 0
+  if (label === 'UK') return 1
+  if (label === 'IPA') return 2
+  return 3
+}
+
+function cleanPhoneticText(text: string | undefined): string | null {
+  const cleaned = text?.trim()
+  return cleaned || null
+}
+
+function getPopupPlacement(
+  position: { x: number; y: number },
+  popupHeight: number
+): PopupPlacement {
+  if (typeof window === 'undefined') {
+    return {
+      left: position.x,
+      top: position.y + ANCHOR_GAP,
+      maxHeight: 360,
+      bodyMaxHeight: 224,
+    }
+  }
+
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  const usableWidth = Math.max(0, viewportWidth - VIEWPORT_MARGIN * 2)
+  const width = Math.min(POPUP_WIDTH, usableWidth)
+  const left = clamp(position.x, VIEWPORT_MARGIN, viewportWidth - width - VIEWPORT_MARGIN)
+  const spaceBelow = viewportHeight - position.y - ANCHOR_GAP - VIEWPORT_MARGIN
+  const spaceAbove = position.y - ANCHOR_GAP - VIEWPORT_MARGIN
+  const placeBelow = spaceBelow >= Math.min(popupHeight, 260) || spaceBelow >= spaceAbove
+  const maxHeight = Math.max(180, Math.min(460, placeBelow ? spaceBelow : spaceAbove))
+  const height = Math.min(popupHeight, maxHeight)
+  const top = placeBelow
+    ? position.y + ANCHOR_GAP
+    : Math.max(VIEWPORT_MARGIN, position.y - ANCHOR_GAP - height)
+
+  return {
+    left,
+    top,
+    maxHeight,
+    bodyMaxHeight: Math.max(110, maxHeight - 92),
+  }
 }

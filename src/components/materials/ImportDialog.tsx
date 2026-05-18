@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { X, Upload, FileAudio, FileText, Globe, Loader2 } from 'lucide-react'
+import { X, Upload, FileAudio, FileText, FileVideo, Globe, Loader2 } from 'lucide-react'
 import { createMaterial } from '@/lib/materials'
 import { parseSubtitles } from '@/lib/srt-parser'
 import { DIFFICULTY_LABELS, bilingual } from '@/lib/labels'
@@ -17,25 +17,25 @@ type ImportMode = 'file' | 'youtube'
 
 export default function ImportDialog({ onClose, onImported }: ImportDialogProps) {
   const [mode, setMode] = useState<ImportMode>('file')
-  const [audioFile, setAudioFile] = useState<File | null>(null)
+  const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [subtitleFile, setSubtitleFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('beginner')
   const [uploading, setUploading] = useState(false)
   const [youtubeUrl, setYoutubeUrl] = useState('')
-  const audioInputRef = useRef<HTMLInputElement>(null)
+  const mediaInputRef = useRef<HTMLInputElement>(null)
   const subtitleInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSubmit = async () => {
-    if (!audioFile) {
-      toast.error('请选择音频文件 / Please select an audio file')
+    if (!mediaFile) {
+      toast.error('请选择音频或视频文件 / Please select an audio or video file')
       return
     }
 
     setUploading(true)
     try {
       const formData = new FormData()
-      formData.append('audio', audioFile)
+      formData.append('media', mediaFile)
       if (subtitleFile) formData.append('subtitle', subtitleFile)
 
       const res = await fetch('/api/materials/upload', { method: 'POST', body: formData })
@@ -43,12 +43,14 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
 
       const data = await res.json()
       const subtitles = data.subtitleContent ? parseSubtitles(data.subtitleContent) : []
-      const duration = await getAudioDuration(data.audioPath)
+      const mediaType = data.mediaType === 'video' ? 'video' : 'audio'
+      const duration = await getMediaDuration(data.audioPath, mediaType)
 
       await createMaterial({
         title: title || data.title,
         difficulty,
         source: 'local',
+        mediaType,
         audioPath: data.audioPath,
         duration: Math.round(duration),
         subtitles,
@@ -90,6 +92,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
         title: title || data.title,
         difficulty,
         source: 'youtube',
+        mediaType: 'audio',
         audioPath: data.audioPath,
         duration: data.duration,
         subtitles,
@@ -114,7 +117,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-[15px] font-semibold">导入材料 / Import Material</h2>
-            <p className="text-[12px] text-text-muted mt-1">添加本地音频或 YouTube 材料 / Add local audio or YouTube material</p>
+            <p className="text-[12px] text-text-muted mt-1">添加本地音视频或 YouTube 材料 / Add local media or YouTube material</p>
           </div>
           <button onClick={onClose} className="p-1 rounded text-text-muted hover:text-text-secondary transition-colors">
             <X size={16} />
@@ -129,7 +132,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
               mode === 'file' ? 'bg-bg-elevated text-text-primary' : 'text-text-muted'
             }`}
           >
-            <FileAudio size={13} />
+            <FileVideo size={13} />
             本地文件 / Local
           </button>
           <button
@@ -158,27 +161,31 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
 
           {mode === 'file' ? (
             <>
-              {/* Audio file */}
+              {/* Media file */}
               <div>
-                <label className="block text-[11px] tracking-wider text-text-muted mb-1.5">音频文件 / Audio file</label>
-                <input ref={audioInputRef} type="file" accept="audio/*" className="hidden"
+                <label className="block text-[11px] tracking-wider text-text-muted mb-1.5">音视频文件 / Media file</label>
+                <input ref={mediaInputRef} type="file" accept="audio/*,video/*" className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (file) {
-                      setAudioFile(file)
+                      setMediaFile(file)
                       if (!title) setTitle(file.name.replace(/\.[^.]+$/, ''))
                     }
                   }}
                 />
                 <button
-                  onClick={() => audioInputRef.current?.click()}
+                  onClick={() => mediaInputRef.current?.click()}
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md border border-dashed transition-colors text-left ${
-                    audioFile ? 'border-accent/30 bg-accent-soft' : 'border-border hover:border-border-active bg-bg-inset'
+                    mediaFile ? 'border-accent/30 bg-accent-soft' : 'border-border hover:border-border-active bg-bg-inset'
                   }`}
                 >
-                  <FileAudio size={16} className={audioFile ? 'text-accent' : 'text-text-muted'} />
-                  <span className={`text-[13px] truncate ${audioFile ? 'text-text-primary' : 'text-text-muted'}`}>
-                    {audioFile ? audioFile.name : '选择 MP3、WAV 或 M4A / Select audio...'}
+                  {mediaFile?.type.startsWith('video/') ? (
+                    <FileVideo size={16} className="text-accent" />
+                  ) : (
+                    <FileAudio size={16} className={mediaFile ? 'text-accent' : 'text-text-muted'} />
+                  )}
+                  <span className={`text-[13px] truncate ${mediaFile ? 'text-text-primary' : 'text-text-muted'}`}>
+                    {mediaFile ? mediaFile.name : '选择 MP3、WAV、M4A、MP4 或 MOV / Select media...'}
                   </span>
                 </button>
               </div>
@@ -242,7 +249,7 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
           {/* Submit */}
           <button
             onClick={mode === 'file' ? handleFileSubmit : handleYoutubeSubmit}
-            disabled={uploading || (mode === 'file' ? !audioFile : !youtubeUrl.trim())}
+            disabled={uploading || (mode === 'file' ? !mediaFile : !youtubeUrl.trim())}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md bg-accent text-bg-primary text-[13px] font-medium hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all mt-2"
           >
             {uploading ? (
@@ -263,10 +270,12 @@ export default function ImportDialog({ onClose, onImported }: ImportDialogProps)
   )
 }
 
-function getAudioDuration(url: string): Promise<number> {
+function getMediaDuration(url: string, mediaType: 'audio' | 'video'): Promise<number> {
   return new Promise((resolve) => {
-    const audio = new Audio(url)
-    audio.addEventListener('loadedmetadata', () => resolve(audio.duration))
-    audio.addEventListener('error', () => resolve(300))
+    const media = document.createElement(mediaType)
+    media.preload = 'metadata'
+    media.src = url
+    media.addEventListener('loadedmetadata', () => resolve(media.duration))
+    media.addEventListener('error', () => resolve(300))
   })
 }
