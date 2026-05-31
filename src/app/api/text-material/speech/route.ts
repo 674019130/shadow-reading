@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { NextRequest, NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
 import {
+  TTS_VOICES,
   createSpeechInstructions,
   normalizeTextForPractice,
   type TextRevisionMode,
@@ -14,7 +15,7 @@ export const runtime = 'nodejs'
 const OPENAI_SPEECH_URL = 'https://api.openai.com/v1/audio/speech'
 const DATA_DIR = join(process.cwd(), 'data', 'materials')
 const MAX_TEXT_LENGTH = 4096
-const VOICES: TtsVoice[] = ['marin', 'cedar', 'coral', 'nova', 'sage', 'verse']
+const VOICES: TtsVoice[] = TTS_VOICES.map(voice => voice.value)
 const MODES: TextRevisionMode[] = ['grammar', 'natural', 'spoken']
 
 export async function POST(request: NextRequest) {

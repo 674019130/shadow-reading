@@ -35,6 +35,26 @@ export async function PATCH(
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const data = await request.json()
+    const material = await localMaterialsStore.update(id, data)
+
+    if (!material) {
+      return NextResponse.json({ error: 'Material not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ material })
+  } catch (error) {
+    console.error('Edit material error:', error)
+    return NextResponse.json({ error: 'Failed to edit material' }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

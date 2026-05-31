@@ -181,6 +181,94 @@ body {
   font-feature-settings: 'kern' 1, 'liga' 1;
 }
 
+.subtitle-mark {
+  position: relative;
+  border-radius: 2px;
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.22em;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.subtitle-mark-symbol {
+  display: inline-block;
+  margin-left: 0.08em;
+  font-size: 0.78em;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: 0.32em;
+}
+
+.subtitle-mark:hover,
+.subtitle-mark:focus-visible {
+  background: var(--accent-soft);
+}
+
+.subtitle-mark[data-note]:hover::after,
+.subtitle-mark[data-note]:focus-visible::after {
+  content: attr(data-note);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 90;
+  width: max-content;
+  max-width: 260px;
+  transform: translateX(-50%);
+  white-space: normal;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  letter-spacing: 0;
+  box-shadow: 0 10px 24px oklch(0% 0 0 / 0.28);
+  pointer-events: none;
+}
+
+.subtitle-mark-stress {
+  color: var(--text-primary);
+  text-decoration-color: var(--accent);
+}
+
+.subtitle-mark-rise {
+  text-decoration-color: var(--green);
+}
+
+.subtitle-mark-rise .subtitle-mark-symbol {
+  color: var(--green);
+}
+
+.subtitle-mark-fall {
+  text-decoration-color: var(--red);
+}
+
+.subtitle-mark-fall .subtitle-mark-symbol {
+  color: var(--red);
+}
+
+.subtitle-mark-fall-rise {
+  text-decoration-style: double;
+  text-decoration-color: var(--phase-retell);
+}
+
+.subtitle-mark-fall-rise .subtitle-mark-symbol {
+  color: var(--phase-retell);
+}
+
+.subtitle-mark-linking {
+  text-decoration-style: wavy;
+  text-decoration-color: var(--orange);
+}
+
+.subtitle-mark-reduced {
+  color: var(--text-muted);
+  text-decoration-style: dotted;
+  text-decoration-color: var(--text-muted);
+}
+
 /* Active subtitle pulse */
 @keyframes cue-enter {
   from { opacity: 0.6; transform: translateX(-4px); }

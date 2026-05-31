@@ -55,7 +55,6 @@ export default function PracticeContextPanel({
 }: PracticeContextPanelProps) {
   const phaseConfig = PHASE_CONFIG[currentPhase]
   const isRetellPhase = currentPhase === 'retelling'
-  const showCueTranslation = currentPhase === 'detailed-read'
   const weakStorageKey = `shadow-reading:weak:${material.id}`
   const retellStorageKey = `shadow-reading:retell:${material.id}`
   const [weakIssue, setWeakIssue] = useState<WeakIssue>('pronunciation')
@@ -132,11 +131,6 @@ export default function PracticeContextPanel({
               className="group mt-2 w-full text-left rounded-md px-3 py-2.5 bg-bg-inset hover:bg-bg-card transition-colors"
             >
               <p className="text-[14px] leading-6 text-text-primary">{currentCue.text}</p>
-              {showCueTranslation && currentCue.translation && (
-                <p className="mt-1.5 text-[12px] leading-5 text-text-muted">
-                  {currentCue.translation}
-                </p>
-              )}
               <p className="mt-2 text-[11px] font-mono text-text-muted tabular-nums">
                 {formatCueTime(currentCue.startTime)} - {formatCueTime(currentCue.endTime)}
               </p>
@@ -153,11 +147,6 @@ export default function PracticeContextPanel({
               <ChevronRight size={13} className="mt-1 shrink-0 text-text-muted" />
               <span className="min-w-0">
                 <span className="block text-[12px] leading-5 text-text-secondary">{nextCue.text}</span>
-                {showCueTranslation && nextCue.translation && (
-                  <span className="mt-0.5 block text-[11px] leading-5 text-text-muted/75">
-                    {nextCue.translation}
-                  </span>
-                )}
               </span>
             </button>
           )}

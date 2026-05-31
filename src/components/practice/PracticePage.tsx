@@ -12,12 +12,12 @@ import PracticeContextPanel from './PracticeContextPanel'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { createSentenceLoopRange } from '@/lib/loop-range'
 import { PHASE_CONFIG, PHASES } from '@/lib/types'
-import { getMaterial, updateMaterialPractice } from '@/lib/materials'
+import { getMaterial, updateMaterial, updateMaterialPractice } from '@/lib/materials'
 import { usePracticeStore } from '@/stores/practice-store'
 import { db } from '@/lib/db'
 import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
-import type { SubtitleCue, PracticePhase, Material, SessionAssessment } from '@/lib/types'
+import type { SubtitleCue, SubtitleMark, PracticePhase, Material, SessionAssessment } from '@/lib/types'
 import type { AudioPlayerHandle } from './AudioPlayer'
 
 const AudioPlayer = dynamic(() => import('./AudioPlayer'), { ssr: false })
@@ -91,6 +91,7 @@ export default function PracticePage({ materialId }: PracticePageProps) {
 
   const handleCueClick = useCallback((cue: SubtitleCue) => {
     playerRef.current?.seekTo(cue.startTime)
+    setCurrentTime(cue.startTime)
   }, [])
 
   const handleLoopCueChange = useCallback((cue: SubtitleCue | null) => {
@@ -99,6 +100,31 @@ export default function PracticePage({ materialId }: PracticePageProps) {
 
     const range = createSentenceLoopRange(cue, material.duration)
     playerRef.current?.seekTo(range.startTime)
+  }, [material])
+
+  const handleCueMarksChange = useCallback(async (cueIndex: number, marks: SubtitleMark[]) => {
+    if (!material) return
+
+    const previousMaterial = material
+    const nextSubtitles = material.subtitles.map(cue => {
+      if (cue.index !== cueIndex) return cue
+      return {
+        ...cue,
+        ...(marks.length > 0 ? { marks } : { marks: undefined }),
+      }
+    })
+
+    setMaterial({ ...material, subtitles: nextSubtitles })
+
+    try {
+      const saved = await updateMaterial(material.id, { subtitles: nextSubtitles })
+      setMaterial(saved)
+      toast.success('标注已保存 / Mark saved')
+    } catch (error) {
+      console.error(error)
+      setMaterial(previousMaterial)
+      toast.error('标注保存失败 / Failed to save mark')
+    }
   }, [material])
 
   // Sentence loop
@@ -229,7 +255,6 @@ export default function PracticePage({ materialId }: PracticePageProps) {
   const nextPhaseConfig = nextPhaseName ? PHASE_CONFIG[nextPhaseName] : null
   const isPhaseTimeUp = isSessionActive && phaseTimeRemaining <= 0
   const mediaType = material.mediaType || 'audio'
-  const showTranslations = currentPhase === 'detailed-read'
 
   return (
     <div className="h-screen w-full bg-bg-primary flex flex-col overflow-hidden">
@@ -411,8 +436,8 @@ export default function PracticePage({ materialId }: PracticePageProps) {
               subtitles={material.subtitles}
               currentTime={currentTime}
               visible={subtitleVisible}
-              showTranslations={showTranslations}
               onCueClick={handleCueClick}
+              onCueMarksChange={handleCueMarksChange}
             />
 
             {/* Recording panel */}

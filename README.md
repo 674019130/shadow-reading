@@ -43,6 +43,9 @@ The app gives each phase a clear focus, but phase changes are manual. Timers can
 - **Five-phase practice flow**: blind listening, detailed reading, shadowing, recording, and retelling.
 - **Manual phase progression**: the current audio/video is reset at phase boundaries so each stage starts cleanly.
 - **Text-to-material import**: paste English text, check grammar, rewrite it naturally, generate AI speech, then practice it immediately.
+- **Voice previews**: each AI speech voice has a bundled short preview under `public/voice-previews`.
+- **Material duplication**: copy an existing material as a new practice item, including subtitles, translations, and pronunciation marks.
+- **Material export**: export either a `.shadow-reading.json` bundle with metadata, subtitles, translations, marks, and local media, or a plain `.txt` transcript.
 - **Editable sentence units**: automatic sentence splitting uses `sentence-splitter`, then lets you edit, split, and merge rows before saving.
 - **Chinese translations**: generate per-sentence Chinese translations during text import and show bilingual lines during reading.
 - **Audio and video import**: upload local audio/video files with optional SRT, VTT, TXT, or JSON subtitles.
@@ -109,7 +112,8 @@ data/
 └── youtube-cache/        # cached YouTube downloads
 
 public/
-└── starter-materials/    # built-in starter audio and subtitles
+├── starter-materials/    # built-in starter audio and subtitles
+└── voice-previews/       # bundled AI voice preview clips
 ```
 
 Generated text materials save AI speech as local media and store estimated subtitle timings from the confirmed sentence rows.

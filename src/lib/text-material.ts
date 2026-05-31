@@ -5,6 +5,15 @@ export type TextRevisionMode = 'grammar' | 'natural' | 'spoken'
 
 export type TtsVoice = 'marin' | 'cedar' | 'coral' | 'nova' | 'sage' | 'verse'
 
+export interface TtsVoiceOption {
+  value: TtsVoice
+  label: string
+  description: string
+  descriptionZh: string
+  previewPath: string
+  previewText: string
+}
+
 export interface TextRevisionChange {
   before: string
   after: string
@@ -43,13 +52,15 @@ export const TEXT_REVISION_MODES: { value: TextRevisionMode; label: string; labe
   },
 ]
 
-export const TTS_VOICES: { value: TtsVoice; label: string; description: string; descriptionZh: string }[] = [
-  { value: 'marin', label: 'Marin', description: 'Natural, clear, balanced', descriptionZh: '自然清晰，最均衡' },
-  { value: 'cedar', label: 'Cedar', description: 'Warm, steady, mature', descriptionZh: '温和稳定，偏成熟' },
-  { value: 'coral', label: 'Coral', description: 'Bright, conversational', descriptionZh: '明亮，有对话感' },
-  { value: 'nova', label: 'Nova', description: 'Clean, energetic', descriptionZh: '干净，有活力' },
-  { value: 'sage', label: 'Sage', description: 'Soft, calm, precise', descriptionZh: '柔和安静，咬字清楚' },
-  { value: 'verse', label: 'Verse', description: 'Expressive, smooth', descriptionZh: '表达感强，流畅' },
+export const VOICE_PREVIEW_TEXT = 'Hi, I am your shadow-reading coach. Let us practice natural English with clear rhythm and confident pronunciation.'
+
+export const TTS_VOICES: TtsVoiceOption[] = [
+  { value: 'marin', label: 'Marin', description: 'Natural, clear, balanced', descriptionZh: '自然清晰，最均衡', previewPath: '/voice-previews/marin.mp3', previewText: VOICE_PREVIEW_TEXT },
+  { value: 'cedar', label: 'Cedar', description: 'Warm, steady, mature', descriptionZh: '温和稳定，偏成熟', previewPath: '/voice-previews/cedar.mp3', previewText: VOICE_PREVIEW_TEXT },
+  { value: 'coral', label: 'Coral', description: 'Bright, conversational', descriptionZh: '明亮，有对话感', previewPath: '/voice-previews/coral.mp3', previewText: VOICE_PREVIEW_TEXT },
+  { value: 'nova', label: 'Nova', description: 'Clean, energetic', descriptionZh: '干净，有活力', previewPath: '/voice-previews/nova.mp3', previewText: VOICE_PREVIEW_TEXT },
+  { value: 'sage', label: 'Sage', description: 'Soft, calm, precise', descriptionZh: '柔和安静，咬字清楚', previewPath: '/voice-previews/sage.mp3', previewText: VOICE_PREVIEW_TEXT },
+  { value: 'verse', label: 'Verse', description: 'Expressive, smooth', descriptionZh: '表达感强，流畅', previewPath: '/voice-previews/verse.mp3', previewText: VOICE_PREVIEW_TEXT },
 ]
 
 export function normalizeTextForPractice(text: string): string {

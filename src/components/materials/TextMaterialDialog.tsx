@@ -6,9 +6,9 @@ import { Check, Combine, FileText, Languages, Loader2, Mic2, RefreshCw, Scissors
 import { toast } from 'sonner'
 import { createMaterial } from '@/lib/materials'
 import { DIFFICULTY_LABELS, bilingual } from '@/lib/labels'
+import VoicePicker from './VoicePicker'
 import {
   TEXT_REVISION_MODES,
-  TTS_VOICES,
   createEstimatedSubtitleCuesFromSentences,
   createSpeechInstructions,
   estimateSpeechDuration,
@@ -493,29 +493,13 @@ export default function TextMaterialDialog({ onClose, onImported }: TextMaterial
 
             <div>
               <label className="block text-[11px] tracking-wider text-text-muted mb-1.5">声音 / Voice</label>
-              <div className="space-y-1">
-                {TTS_VOICES.map(item => (
-                  <button
-                    key={item.value}
-                    onClick={() => {
-                      setVoice(item.value)
-                      clearGeneratedAudio()
-                    }}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-left transition-colors ${
-                      voice === item.value ? 'bg-bg-elevated text-text-primary' : 'text-text-muted hover:text-text-secondary'
-                    }`}
-                  >
-                    <span>
-                      <span className="block text-[12px] font-medium">{item.label}</span>
-                      <span className="block text-[10px] text-text-muted/70 mt-0.5">
-                        {item.descriptionZh}
-                        <span className="block">{item.description}</span>
-                      </span>
-                    </span>
-                    {voice === item.value && <Check size={13} className="text-accent" />}
-                  </button>
-                ))}
-              </div>
+              <VoicePicker
+                value={voice}
+                onChange={(nextVoice) => {
+                  setVoice(nextVoice)
+                  clearGeneratedAudio()
+                }}
+              />
             </div>
 
             <button

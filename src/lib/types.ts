@@ -1,6 +1,14 @@
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced'
 export type MaterialSource = 'local' | 'youtube' | 'builtin' | 'text'
 export type MediaType = 'audio' | 'video'
+export type SubtitleMarkType = 'stress' | 'rise' | 'fall' | 'fall-rise' | 'linking' | 'reduced'
+
+export interface SubtitleMark {
+  start: number
+  end: number
+  type: SubtitleMarkType
+  note?: string
+}
 
 export interface SubtitleCue {
   index: number
@@ -8,6 +16,7 @@ export interface SubtitleCue {
   endTime: number
   text: string
   translation?: string
+  marks?: SubtitleMark[]
 }
 
 export interface Material {
